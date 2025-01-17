@@ -1,21 +1,16 @@
 #Get competitions' teams IDs
 
 import requests
-import configparser
+from utilities import get_api_key
+from utilities import URL_BEGIN
 import sys
-
-config = configparser.RawConfigParser()
-config.read(r'config.cfg')
-
-API_KEY         = config.get("KEYS", "API_KEY")
-URL_BEGIN       = "https://api.football-data.org/v4"
 
 COMPETITION_ID  = int(sys.argv[1])
 
 url = f"{URL_BEGIN}/competitions/{COMPETITION_ID}/teams"
 
 headers = {
-    "X-Auth-Token": API_KEY
+    "X-Auth-Token": get_api_key()
 }
 
 response = requests.get(url, headers=headers)
