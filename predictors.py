@@ -2,16 +2,25 @@ import numpy as np
 import json
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor
+from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.layers import Dense
+
+def calculate_cross_score(model, name):
+    scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_mean_squared_error')
+    mean_mse = -scores.mean()
+    print(f"Cross-validated MSE for {name}: {mean_mse:.2f}")
 
 with open("matchStatsNew.json", "r") as file:
-    data_json = json.load(file)
+    data_json = json.load(file)    
 
 #region DataInitialization
 home_team_features = data_json['matchesHomeTeam'][0]
@@ -74,8 +83,15 @@ y = train_df['total_goals']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 #endregion
 
+#region Naive
+naive_pred = np.mean(y_train)
+naive_mse = np.mean((y_test - naive_pred) ** 2)
+print(f"Naive Baseline MSE: {naive_mse}")
+#endregion
+
 #region LinearRegression
 lin_reg = LinearRegression()
+# calculate_cross_score(lin_reg, "Linear")
 lin_reg.fit(X_train, y_train)
 
 y_pred = lin_reg.predict(X_test)
@@ -104,6 +120,7 @@ print(f"R2 Score: {r2_score(y_test, y_pred_poly):.2f} \n")
 
 #region DecisionTree
 tree_reg = DecisionTreeRegressor(max_depth=3, random_state=42)
+# calculate_cross_score(tree_reg, "DecisionTree")
 tree_reg.fit(X_train, y_train)
 
 y_pred_tree = tree_reg.predict(X_test)
@@ -116,6 +133,7 @@ print(f"R2 Score: {r2_score(y_test, y_pred_tree):.2f} \n")
 
 #region RandomForest
 rf_regressor = RandomForestRegressor(n_estimators=200, random_state=42)
+# calculate_cross_score(rf_regressor, "RandomForest")
 rf_regressor.fit(X_train, y_train)
 
 y_pred_rf = rf_regressor.predict(X_test)
@@ -127,12 +145,43 @@ print(f"R2 Score: {r2_score(y_test, y_pred_rf):.2f} \n")
 
 #region GradientBoosting
 gb_regressor = GradientBoostingRegressor(random_state=42)
+# calculate_cross_score(gb_regressor, "Gradient")
 gb_regressor.fit(X_train, y_train)
 
 y_pred_gb = gb_regressor.predict(X_test)
 print("Gradient Boosting:")
 print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_gb):.2f}")
 print(f"R2 Score: {r2_score(y_test, y_pred_gb):.2f} \n")
+#endregion
+
+#region XGBRegressor
+xgb_reg = XGBRegressor(n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42)
+# calculate_cross_score(xgb_reg, "XGBRegressor")
+xgb_reg.fit(X_train, y_train)
+
+y_pred_xgb = xgb_reg.predict(X_test)
+# y_pred_xgb = np.maximum(0, y_pred_xgb)
+
+print("XGBoost:")
+print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_xgb):.2f}")
+print(f"R2 Score: {r2_score(y_test, y_pred_xgb):.2f} \n")
+#endregion
+
+#region NeuralNetwork
+model = Sequential([
+    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    Dense(32, activation='relu'),
+    Dense(1, activation='relu')
+])
+
+model.compile(optimizer='adam', loss='mse')
+model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=50, batch_size=4, verbose=0)
+
+y_pred_nn = model.predict(X_test).flatten()
+
+print("Neural network:")
+print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_nn):.2f}")
+print(f"R2 Score: {r2_score(y_test, y_pred_nn):.2f} \n")
 #endregion
 
 #region Prediction
@@ -153,7 +202,13 @@ predicted_goals_rf = rf_regressor.predict(X_predict)
 print(f"Random forest: Przewidywana liczba goli w meczu: {predicted_goals_rf[0]:.2f}")
 
 predicted_goals_gb = gb_regressor.predict(X_predict)
-print(f"Gradient Boosting: Przewidywana liczba goli w meczu: {predicted_goals_gb[0]:.2f} \n")
+print(f"Gradient Boosting: Przewidywana liczba goli w meczu: {predicted_goals_gb[0]:.2f}")
+
+predicted_goals_xgb = xgb_reg.predict(X_predict)
+print(f"XGBoost: Przewidywana liczba goli w meczu: {predicted_goals_xgb[0]:.2f}")
+
+predicted_goals_nn = model.predict(X_predict, verbose=0).flatten()
+print(f"Neural: Przewidywana liczba goli w meczu: {predicted_goals_nn[0]:.2f} \n")
 #endregion
 
 #region Plot
