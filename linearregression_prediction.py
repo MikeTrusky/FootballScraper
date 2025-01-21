@@ -5,6 +5,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 import matplotlib.pyplot as plt
 
 with open("matchStatsNew.json", "r") as file:
@@ -68,20 +71,19 @@ X = train_df[
     ]
 ]
 y = train_df['total_goals']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 #endregion
 
 #region LinearRegression
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
 lin_reg = LinearRegression()
 lin_reg.fit(X_train, y_train)
 
 y_pred = lin_reg.predict(X_test)
 y_pred = np.maximum(0, y_pred)
 
-print("Regresja Liniowa:")
+print("\nRegresja Liniowa:")
 print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred):.2f}")
+print(f"R2 Score: {r2_score(y_test, y_pred):.2f} \n")
 #endregion
 
 #region PolynomialRegression
@@ -95,18 +97,63 @@ poly_reg.fit(X_train_poly, y_train)
 y_pred_poly = poly_reg.predict(X_test_poly)
 y_pred_poly = np.maximum(0, y_pred_poly)
 
-print("\nRegresja Wielomianowa (stopień 2):")
+print("Regresja Wielomianowa (stopień 2):")
 print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_poly):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred_poly):.2f}")
+print(f"R2 Score: {r2_score(y_test, y_pred_poly):.2f} \n")
+#endregion
+
+#region DecisionTree
+tree_reg = DecisionTreeRegressor(max_depth=3, random_state=42)
+tree_reg.fit(X_train, y_train)
+
+y_pred_tree = tree_reg.predict(X_test)
+y_pred_tree = np.maximum(0, y_pred_tree)
+
+print("Drzewo decyzyjne:")
+print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_tree):.2f}")
+print(f"R2 Score: {r2_score(y_test, y_pred_tree):.2f} \n")
+#endregion
+
+#region RandomForest
+rf_regressor = RandomForestRegressor(n_estimators=200, random_state=42)
+rf_regressor.fit(X_train, y_train)
+
+y_pred_rf = rf_regressor.predict(X_test)
+
+print("Random Forest:")
+print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_rf):.2f}")
+print(f"R2 Score: {r2_score(y_test, y_pred_rf):.2f} \n")
+#endregion
+
+#region GradientBoosting
+gb_regressor = GradientBoostingRegressor(random_state=42)
+gb_regressor.fit(X_train, y_train)
+
+y_pred_gb = gb_regressor.predict(X_test)
+print("Gradient Boosting:")
+print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_gb):.2f}")
+print(f"R2 Score: {r2_score(y_test, y_pred_gb):.2f} \n")
 #endregion
 
 #region Prediction
 X_predict = predict_df[['home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg',
                         'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg']]
 
-predicted_goals = lin_reg.predict(X_predict)
-predicted_goals = np.maximum(0, predicted_goals)
-print(f"Przewidywana liczba goli w meczu: {predicted_goals[0]:.2f}")
+predicted_goals_linear = lin_reg.predict(X_predict)
+print(f"Regresja liniowa: Przewidywana liczba goli w meczu: {predicted_goals_linear[0]:.2f}")
+
+X_predict_poly = poly.transform(X_predict)
+predicted_goals_polynomial = poly_reg.predict(X_predict_poly)
+print(f"Regresja wielomianowa: Przewidywana liczba goli w meczu: {predicted_goals_polynomial[0]:.2f}")
+
+predicted_goals_decisionTree = tree_reg.predict(X_predict)
+print(f"Drzewo decyzyjne: Przewidywana liczba goli w meczu: {predicted_goals_decisionTree[0]:.2f}")
+
+predicted_goals_rf = rf_regressor.predict(X_predict)
+print(f"Random forest: Przewidywana liczba goli w meczu: {predicted_goals_rf[0]:.2f}")
+
+predicted_goals_gb = gb_regressor.predict(X_predict)
+print(f"Gradient Boosting: Przewidywana liczba goli w meczu: {predicted_goals_gb[0]:.2f} \n")
 #endregion
 
 #region Plot
@@ -118,5 +165,5 @@ plt.xlabel("Rzeczywista liczba goli")
 plt.ylabel("Przewidywana liczba goli")
 plt.legend()
 plt.title("Porównanie modeli regresji")
-plt.show()
+# plt.show()
 #endregion
