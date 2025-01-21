@@ -9,7 +9,7 @@ COMPETITION_ID  = int(sys.argv[1])
 DATE_FROM       = "2025-01-18"
 DATE_TO         = "2025-01-20"
 
-url = f"{URL_BEGIN}/competitions/{COMPETITION_ID}/matches?status=SCHEDULED&dateFrom={DATE_FROM}&dateTo={DATE_TO}"
+url = f"{URL_BEGIN}/competitions/{COMPETITION_ID}/matches?dateFrom={DATE_FROM}&dateTo={DATE_TO}"
 
 headers = {
     "X-Auth-Token": get_api_key()
