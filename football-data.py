@@ -11,12 +11,12 @@ DATE_TO = "2025-01-18"
 # COMPETITION_ID = int(sys.argv[3])
 
 MATCH_ID = 497620
-NUM_MATCHES = 5
+NUM_MATCHES = 10
 COMPETITION_ID = 2021
 
 matches = []
 
-def get_team_filtered_matches(teamId):
+def get_matches_by_teamId(teamId):
     return [
         match
         for match in matches
@@ -24,27 +24,21 @@ def get_team_filtered_matches(teamId):
     ]
 
 def get_team_results(teamId):    
-    teamMatches = get_team_filtered_matches(teamId)    
+    teamMatches = get_matches_by_teamId(teamId)    
     results = []    
+
     for index, match in enumerate(teamMatches[:NUM_MATCHES]):
         results.append(get_team_match_info(teamId, teamMatches[(index + 1):((index + 1) + 5)], teamMatches[index]))
 
     return results
 
-def get_team_previousMatches(originialTeamId, currentTeamId, originalTeamMatches, matchId):
-    if originialTeamId == currentTeamId:
-        return originalTeamMatches
-    else:
-        teamMatches = get_team_filtered_matches(currentTeamId)
-        index = next(i for i, match in enumerate(teamMatches) if match["id"] == matchId)
-        return teamMatches[index + 1:NUM_MATCHES + 1]
-
 def get_team_match_info(teamId, teamMatches, match):
     matchId = match["id"]    
     homeTeamId = match["homeTeam"]["id"]
     awayTeamId = match["awayTeam"]["id"]
-    homeTeamValues = get_team_previousMatches_info(True, homeTeamId, get_team_previousMatches(teamId, homeTeamId, teamMatches, matchId))
-    awayTeamValues = get_team_previousMatches_info(False, awayTeamId, get_team_previousMatches(teamId, awayTeamId, teamMatches, matchId))
+    
+    homeTeamValues = get_team_previousMatches_results(True, homeTeamId, get_team_previousMatches(teamId, homeTeamId, teamMatches, matchId))
+    awayTeamValues = get_team_previousMatches_results(False, awayTeamId, get_team_previousMatches(teamId, awayTeamId, teamMatches, matchId))
 
     return {
         "matchId": matchId, 
@@ -53,7 +47,15 @@ def get_team_match_info(teamId, teamMatches, match):
         "matchGoals": match["score"]["totalGoals"]
     }
 
-def get_team_previousMatches_info(homeMatch, teamId, matches):
+def get_team_previousMatches(originalTeamId, currentTeamId, originalTeamMatches, matchId):
+    if originalTeamId == currentTeamId:
+        return originalTeamMatches
+    else:
+        teamMatches = get_matches_by_teamId(currentTeamId)
+        index = next(i for i, match in enumerate(teamMatches) if match["id"] == matchId)
+        return teamMatches[index + 1:NUM_MATCHES + index + 1]
+
+def get_team_previousMatches_results(homeMatch, teamId, matches):
     goalsScoredAll = 0
     goalsScoredHomeOrAway = 0
     goalsConcededAll = 0
@@ -126,6 +128,7 @@ for match in reversed(matchesFromRequest):
             "totalGoals": match["score"]["fullTime"]["home"] + match["score"]["fullTime"]["away"]
         }
     })
+
 
 url = f"{URL_BEGIN}/matches/{MATCH_ID}"
 response = requests.get(url, headers=get_headers_with_authToken())
