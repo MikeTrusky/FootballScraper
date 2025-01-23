@@ -2,6 +2,7 @@ import requests
 from utilities import URL_BEGIN
 from utilities import get_headers_with_authToken
 import json
+import math
 
 DATE_FROM = "2024-08-01"
 DATE_TO = "2025-01-18"
@@ -13,8 +14,10 @@ DATE_TO = "2025-01-18"
 MATCH_ID = 497620
 NUM_MATCHES = 6
 COMPETITION_ID = 2021
+SEASON = 2024
 
 matches = []
+teamsRaiting = {}
 
 def get_matches_by_teamId(teamId):
     return [
@@ -62,9 +65,11 @@ def get_team_previousMatches_results(homeMatch, teamId, matches):
     goalsConcededHomeOrAway = 0
     matchesHome = 0
     matchesAway = 0
+    rivalsRating = 0
 
     for match in matches:
         if match["homeTeam"]["id"] == teamId:
+            rivalsRating += teamsRaiting[match["awayTeam"]["id"]]
             matchesHome += 1
             goalsScoredAll += match["score"]["home"]
             goalsConcededAll += match["score"]["away"]
@@ -72,6 +77,7 @@ def get_team_previousMatches_results(homeMatch, teamId, matches):
                 goalsScoredHomeOrAway += match["score"]["home"]
                 goalsConcededHomeOrAway += match["score"]["away"]
         else:
+            rivalsRating += teamsRaiting[match["homeTeam"]["id"]]
             matchesAway += 1
             goalsScoredAll += match["score"]["away"]
             goalsConcededAll += match["score"]["home"]
@@ -83,6 +89,7 @@ def get_team_previousMatches_results(homeMatch, teamId, matches):
     goalsScoredHomeOrAwayAvg = round(goalsScoredHomeOrAway / matchesHome, 2)
     goalsConcededAllAvg = round(goalsConcededAll / NUM_MATCHES, 2)
     goalsConcededHomeOrAwayAvg = round(goalsConcededHomeOrAway / matchesHome, 2)
+    rivalsRatingAvg = round(rivalsRating / NUM_MATCHES, 2)
     
     if homeMatch:
         return {
@@ -94,6 +101,7 @@ def get_team_previousMatches_results(homeMatch, teamId, matches):
             "goalsScoredHomeAvg": goalsScoredHomeOrAwayAvg,
             "goalsConcededAllAvg": goalsConcededAllAvg,
             "goalsConcededHomeAvg": goalsConcededHomeOrAwayAvg,
+            "rivalsRatingAvg": rivalsRatingAvg,
         }
     else:
         return {
@@ -105,7 +113,16 @@ def get_team_previousMatches_results(homeMatch, teamId, matches):
             "goalsScoredAwayAvg": goalsScoredHomeOrAwayAvg,
             "goalsConcededAllAvg": goalsConcededAllAvg,
             "goalsConcededAwayAvg": goalsConcededHomeOrAwayAvg,
+            "rivalsRatingAvg": rivalsRatingAvg,
         }
+    
+def set_teamRating_for_matchday(matchday):
+    standingsUrl = f"{URL_BEGIN}/competitions/{COMPETITION_ID}/standings?season={SEASON}&matchday={matchday - 1}"
+    standingsResponse = requests.get(standingsUrl, headers=get_headers_with_authToken())
+    standingsTable = standingsResponse.json()['standings']
+
+    total_table = next((s['table'] for s in standingsTable if s['type'] == 'TOTAL'), [])
+    return { entry['team']['id']: entry['position'] for entry in total_table}
 
 url = f"{URL_BEGIN}/competitions/{COMPETITION_ID}/matches?dateFrom={DATE_FROM}&dateTo={DATE_TO}"
 response = requests.get(url, headers=get_headers_with_authToken())
@@ -129,11 +146,21 @@ for match in reversed(matchesFromRequest):
         }
     })
 
-
 url = f"{URL_BEGIN}/matches/{MATCH_ID}"
 response = requests.get(url, headers=get_headers_with_authToken())
 homeTeam = response.json()['homeTeam']
 awayTeam = response.json()['awayTeam']
+
+matchMatchday = int(response.json()['matchday'])
+teamsRaiting = set_teamRating_for_matchday(matchMatchday - 1)
+
+if (matchMatchday - 6) > 0:
+    teamsRaitingPrevious = set_teamRating_for_matchday(matchMatchday - 6)
+    
+    for team_id, current_rating in teamsRaiting.items():
+        previous_rating = teamsRaitingPrevious.get(team_id)
+        if previous_rating:
+            teamsRaiting[team_id] = math.floor((current_rating + previous_rating) / 2) 
 
 results = {}
 results["matchesNumber"] = NUM_MATCHES
