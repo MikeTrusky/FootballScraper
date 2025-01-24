@@ -11,53 +11,55 @@ DATE_TO = "2025-01-18"
 # NUM_MATCHES = int(sys.argv[2])
 # COMPETITION_ID = int(sys.argv[3])
 
-MATCH_ID = 497620
-NUM_MATCHES = 6
+MATCH_ID = 497607
+NUM_MATCHES = 3
 COMPETITION_ID = 2021
 SEASON = 2024
-NUM_H2H_MATCHES = 5
-PREVIOUS_STANDINGS_MATCHES = 6
+# NUM_H2H_MATCHES = 5
 
 matches = []
 teamsRaiting = {}
 
 #region Methods
-def get_matches_by_teamId(teamId):
+def get_matches_by_teamId(teamId, currentMatchday):
     return [
         match
         for match in matches
-        if match["homeTeam"]["id"] == teamId or match["awayTeam"]["id"] == teamId
+        if (match["homeTeam"]["id"] == teamId or match["awayTeam"]["id"] == teamId)                
+        and (match["matchday"] <= currentMatchday)
     ]
 
-def get_team_results(teamId):    
-    teamMatches = get_matches_by_teamId(teamId)    
+def get_team_results(teamId, matchday):    
+    teamMatches = get_matches_by_teamId(teamId, matchday)    
     results = []    
 
     for index, match in enumerate(teamMatches[:NUM_MATCHES]):
-        results.append(get_team_match_info(teamId, teamMatches[(index + 1):((index + 1) + NUM_MATCHES)], teamMatches[index]))
+        results.append(get_team_match_info(teamId, teamMatches[(index + 1):((index + 1) + NUM_MATCHES)], teamMatches[index], matchday))
 
     return results
 
-def get_team_match_info(teamId, teamMatches, match):
+def get_team_match_info(teamId, teamMatches, match, matchday):
     matchId = match["id"]    
     homeTeamId = match["homeTeam"]["id"]
     awayTeamId = match["awayTeam"]["id"]
     
-    homeTeamValues = get_team_previousMatches_results(True, homeTeamId, get_team_previousMatches(teamId, homeTeamId, teamMatches, matchId))
-    awayTeamValues = get_team_previousMatches_results(False, awayTeamId, get_team_previousMatches(teamId, awayTeamId, teamMatches, matchId))
+    homeTeamValues = get_team_previousMatches_results(True, homeTeamId, get_team_previousMatches(teamId, homeTeamId, teamMatches, matchId, matchday))
+    awayTeamValues = get_team_previousMatches_results(False, awayTeamId, get_team_previousMatches(teamId, awayTeamId, teamMatches, matchId, matchday))
 
     return {
         "matchId": matchId, 
+        "homeTeamName": match["homeTeam"]["name"],
+        "awayTeamName": match["awayTeam"]["name"],
         "matchHomeTeamValues": homeTeamValues,
         "matchAwayTeamValues": awayTeamValues,        
         "matchGoals": match["score"]["totalGoals"]
     }
 
-def get_team_previousMatches(originalTeamId, currentTeamId, originalTeamMatches, matchId):
+def get_team_previousMatches(originalTeamId, currentTeamId, originalTeamMatches, matchId, matchday):
     if originalTeamId == currentTeamId:
         return originalTeamMatches
     else:
-        teamMatches = get_matches_by_teamId(currentTeamId)
+        teamMatches = get_matches_by_teamId(currentTeamId, matchday)
         index = next(i for i, match in enumerate(teamMatches) if match["id"] == matchId)
         return teamMatches[index + 1:NUM_MATCHES + index + 1]
 
@@ -66,32 +68,31 @@ def get_team_previousMatches_results(homeMatch, teamId, matches):
     goalsScoredHomeOrAway = 0
     goalsConcededAll = 0
     goalsConcededHomeOrAway = 0
-    matchesHome = 0
-    matchesAway = 0
+    matchesToDivide = 0    
     rivalsRating = 0
 
     for match in matches:
         if match["homeTeam"]["id"] == teamId:
-            rivalsRating += teamsRaiting[match["awayTeam"]["id"]]
-            matchesHome += 1
+            rivalsRating += teamsRaiting[match["awayTeam"]["id"]]            
             goalsScoredAll += match["score"]["home"]
             goalsConcededAll += match["score"]["away"]
             if homeMatch:
+                matchesToDivide += 1
                 goalsScoredHomeOrAway += match["score"]["home"]
                 goalsConcededHomeOrAway += match["score"]["away"]
         else:
-            rivalsRating += teamsRaiting[match["homeTeam"]["id"]]
-            matchesAway += 1
+            rivalsRating += teamsRaiting[match["homeTeam"]["id"]]            
             goalsScoredAll += match["score"]["away"]
             goalsConcededAll += match["score"]["home"]
             if homeMatch == False:
+                matchesToDivide += 1
                 goalsScoredHomeOrAway += match["score"]["away"]
-                goalsConcededHomeOrAway += match["score"]["home"]        
+                goalsConcededHomeOrAway += match["score"]["home"]            
 
     goalsScoredAllAvg = round(goalsScoredAll / NUM_MATCHES, 2)
-    goalsScoredHomeOrAwayAvg = round(goalsScoredHomeOrAway / matchesHome, 2)
+    goalsScoredHomeOrAwayAvg = 0 if matchesToDivide <= 0 else round(goalsScoredHomeOrAway / matchesToDivide, 2)
     goalsConcededAllAvg = round(goalsConcededAll / NUM_MATCHES, 2)
-    goalsConcededHomeOrAwayAvg = round(goalsConcededHomeOrAway / matchesHome, 2)
+    goalsConcededHomeOrAwayAvg = 0 if matchesToDivide <= 0 else round(goalsConcededHomeOrAway / matchesToDivide, 2)
     rivalsRatingAvg = round(rivalsRating / NUM_MATCHES, 2)
     
     if homeMatch:
@@ -134,6 +135,7 @@ def set_matches_from_request(requestUrl):
     for match in reversed(matchesFromRequest):
         matches.append({
             "id": match["id"],
+            "matchday": match["matchday"],
             "homeTeam": {
                 "id": match["homeTeam"]["id"],
                 "name": match["homeTeam"]["name"]
@@ -163,21 +165,21 @@ def get_match_info():
     }
 
 def update_raiting_by_previous_standings(matchday):
-    if (matchday - PREVIOUS_STANDINGS_MATCHES) > 0:
-        teamsRaitingPrevious = set_teamRating_for_matchday(matchday - PREVIOUS_STANDINGS_MATCHES)
+    if (matchday - NUM_MATCHES) > 0:
+        teamsRaitingPrevious = set_teamRating_for_matchday(matchday - NUM_MATCHES)
         
         for team_id, current_rating in teamsRaiting.items():
             previous_rating = teamsRaitingPrevious.get(team_id)
             if previous_rating:
                 teamsRaiting[team_id] = math.floor((current_rating + previous_rating) / 2) 
 
-def set_results(homeTeam, awayTeam):
+def set_results(homeTeam, awayTeam, matchday):
     results = {}
     results["matchesNumber"] = NUM_MATCHES
     results["homeTeamName"] = homeTeam["name"]
     results["awayTeamName"] = awayTeam["name"]
-    results["matchesHomeTeam"] = get_team_results(homeTeam["id"])
-    results["matchesAwayTeam"] = get_team_results(awayTeam["id"])
+    results["matchesHomeTeam"] = get_team_results(homeTeam["id"], matchday)
+    results["matchesAwayTeam"] = get_team_results(awayTeam["id"], matchday)
 
     return results
 #endregion
@@ -186,6 +188,6 @@ set_matches_from_request(f"{URL_BEGIN}/competitions/{COMPETITION_ID}/matches?dat
 match_info = get_match_info()
 teamsRaiting = set_teamRating_for_matchday(match_info["matchday"] - 1)
 update_raiting_by_previous_standings(match_info["matchday"])
-results = set_results(match_info["homeTeam"], match_info["awayTeam"])
+results = set_results(match_info["homeTeam"], match_info["awayTeam"], match_info["matchday"])
 
 save_to_file(results)
