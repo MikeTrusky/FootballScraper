@@ -1,5 +1,4 @@
 import numpy as np
-import json
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
@@ -13,14 +12,14 @@ from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Dense
+from utilities import load_from_file
 
 def calculate_cross_score(model, name):
     scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_mean_squared_error')
     mean_mse = -scores.mean()
     print(f"Cross-validated MSE for {name}: {mean_mse:.2f}")
 
-with open("matchStatsNew.json", "r") as file:
-    data_json = json.load(file)    
+data_json = load_from_file()
 
 #region DataInitialization
 home_team_features = data_json['matchesHomeTeam'][0]
@@ -35,6 +34,8 @@ data = {
     'away_conceded_avg': [away_team_features['matchAwayTeamValues']['goalsConcededAwayAvg']],
     'aTeam_goals_all_avg': [away_team_features['matchAwayTeamValues']['goalsScoredAllAvg']],
     'aTeam_conceded_all_avg': [away_team_features['matchAwayTeamValues']['goalsConcededAllAvg']],
+    'hTeam_rivals_rating_avg': [home_team_features['matchHomeTeamValues']["rivalsRatingAvg"]],
+    'aTeam_rivals_rating_avg': [away_team_features['matchAwayTeamValues']["rivalsRatingAvg"]],
     'total_goals': [None]
 }
 
@@ -47,6 +48,8 @@ for match in data_json['matchesHomeTeam'][1:]:
     data['away_conceded_avg'].append(match['matchAwayTeamValues']['goalsConcededAwayAvg'])
     data['aTeam_goals_all_avg'].append(match['matchAwayTeamValues']['goalsScoredAllAvg'])
     data['aTeam_conceded_all_avg'].append(match['matchAwayTeamValues']['goalsConcededAllAvg'])
+    data['hTeam_rivals_rating_avg'].append(match['matchHomeTeamValues']["rivalsRatingAvg"])
+    data['aTeam_rivals_rating_avg'].append(match['matchAwayTeamValues']["rivalsRatingAvg"])
     data['total_goals'].append(match['matchGoals'])
 
 for match in data_json['matchesAwayTeam'][1:]:
@@ -58,6 +61,8 @@ for match in data_json['matchesAwayTeam'][1:]:
     data['away_conceded_avg'].append(match['matchAwayTeamValues']['goalsConcededAwayAvg'])
     data['aTeam_goals_all_avg'].append(match['matchAwayTeamValues']['goalsScoredAllAvg'])
     data['aTeam_conceded_all_avg'].append(match['matchAwayTeamValues']['goalsConcededAllAvg'])
+    data['hTeam_rivals_rating_avg'].append(match['matchHomeTeamValues']["rivalsRatingAvg"])
+    data['aTeam_rivals_rating_avg'].append(match['matchAwayTeamValues']["rivalsRatingAvg"])
     data['total_goals'].append(match['matchGoals'])
 #endregion
 
@@ -76,7 +81,8 @@ predict_df = df[df['total_goals'].isna()]
 X = train_df[
     [
         'home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg', 
-        'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg'
+        'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg',
+        'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg'
     ]
 ]
 y = train_df['total_goals']
@@ -186,7 +192,8 @@ print(f"R2 Score: {r2_score(y_test, y_pred_nn):.2f} \n")
 
 #region Prediction
 X_predict = predict_df[['home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg',
-                        'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg']]
+                        'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg',
+                        'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg']]
 
 predicted_goals_linear = lin_reg.predict(X_predict)
 print(f"Regresja liniowa: Przewidywana liczba goli w meczu: {predicted_goals_linear[0]:.2f}")

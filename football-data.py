@@ -1,7 +1,7 @@
 import requests
 from utilities import URL_BEGIN
 from utilities import get_headers_with_authToken
-import json
+from utilities import save_to_file
 import math
 
 DATE_FROM = "2024-08-01"
@@ -15,10 +15,13 @@ MATCH_ID = 497620
 NUM_MATCHES = 6
 COMPETITION_ID = 2021
 SEASON = 2024
+NUM_H2H_MATCHES = 5
+PREVIOUS_STANDINGS_MATCHES = 6
 
 matches = []
 teamsRaiting = {}
 
+#region Methods
 def get_matches_by_teamId(teamId):
     return [
         match
@@ -31,7 +34,7 @@ def get_team_results(teamId):
     results = []    
 
     for index, match in enumerate(teamMatches[:NUM_MATCHES]):
-        results.append(get_team_match_info(teamId, teamMatches[(index + 1):((index + 1) + 5)], teamMatches[index]))
+        results.append(get_team_match_info(teamId, teamMatches[(index + 1):((index + 1) + NUM_MATCHES)], teamMatches[index]))
 
     return results
 
@@ -124,50 +127,65 @@ def set_teamRating_for_matchday(matchday):
     total_table = next((s['table'] for s in standingsTable if s['type'] == 'TOTAL'), [])
     return { entry['team']['id']: entry['position'] for entry in total_table}
 
-url = f"{URL_BEGIN}/competitions/{COMPETITION_ID}/matches?dateFrom={DATE_FROM}&dateTo={DATE_TO}"
-response = requests.get(url, headers=get_headers_with_authToken())
-matchesFromRequest = response.json()['matches']
-matches.clear()
-for match in reversed(matchesFromRequest):
-    matches.append({
-        "id": match["id"],
-        "homeTeam": {
-            "id": match["homeTeam"]["id"],
-            "name": match["homeTeam"]["name"]
-        },
-        "awayTeam": {
-            "id": match["awayTeam"]["id"],
-            "name": match["awayTeam"]["name"]
-        },
-        "score": {
-            "home": match["score"]["fullTime"]["home"],
-            "away": match["score"]["fullTime"]["away"],
-            "totalGoals": match["score"]["fullTime"]["home"] + match["score"]["fullTime"]["away"]
-        }
-    })
+def set_matches_from_request(requestUrl):    
+    response = requests.get(requestUrl, headers=get_headers_with_authToken())
+    matchesFromRequest = response.json()['matches']
+    matches.clear()
+    for match in reversed(matchesFromRequest):
+        matches.append({
+            "id": match["id"],
+            "homeTeam": {
+                "id": match["homeTeam"]["id"],
+                "name": match["homeTeam"]["name"]
+            },
+            "awayTeam": {
+                "id": match["awayTeam"]["id"],
+                "name": match["awayTeam"]["name"]
+            },
+            "score": {
+                "home": match["score"]["fullTime"]["home"],
+                "away": match["score"]["fullTime"]["away"],
+                "totalGoals": match["score"]["fullTime"]["home"] + match["score"]["fullTime"]["away"]
+            }
+        })
 
-url = f"{URL_BEGIN}/matches/{MATCH_ID}"
-response = requests.get(url, headers=get_headers_with_authToken())
-homeTeam = response.json()['homeTeam']
-awayTeam = response.json()['awayTeam']
+def get_match_info():
+    url = f"{URL_BEGIN}/matches/{MATCH_ID}"
+    response = requests.get(url, headers=get_headers_with_authToken())
+    homeTeam = response.json()['homeTeam']
+    awayTeam = response.json()['awayTeam']
+    matchMatchday = int(response.json()['matchday'])    
 
-matchMatchday = int(response.json()['matchday'])
-teamsRaiting = set_teamRating_for_matchday(matchMatchday - 1)
+    return {
+        "homeTeam": homeTeam,
+        "awayTeam": awayTeam,
+        "matchday": matchMatchday
+    }
 
-if (matchMatchday - 6) > 0:
-    teamsRaitingPrevious = set_teamRating_for_matchday(matchMatchday - 6)
-    
-    for team_id, current_rating in teamsRaiting.items():
-        previous_rating = teamsRaitingPrevious.get(team_id)
-        if previous_rating:
-            teamsRaiting[team_id] = math.floor((current_rating + previous_rating) / 2) 
+def update_raiting_by_previous_standings(matchday):
+    if (matchday - PREVIOUS_STANDINGS_MATCHES) > 0:
+        teamsRaitingPrevious = set_teamRating_for_matchday(matchday - PREVIOUS_STANDINGS_MATCHES)
+        
+        for team_id, current_rating in teamsRaiting.items():
+            previous_rating = teamsRaitingPrevious.get(team_id)
+            if previous_rating:
+                teamsRaiting[team_id] = math.floor((current_rating + previous_rating) / 2) 
 
-results = {}
-results["matchesNumber"] = NUM_MATCHES
-results["homeTeamName"] = homeTeam["name"]
-results["awayTeamName"] = awayTeam["name"]
-results["matchesHomeTeam"] = get_team_results(homeTeam["id"])
-results["matchesAwayTeam"] = get_team_results(awayTeam["id"])
+def set_results(homeTeam, awayTeam):
+    results = {}
+    results["matchesNumber"] = NUM_MATCHES
+    results["homeTeamName"] = homeTeam["name"]
+    results["awayTeamName"] = awayTeam["name"]
+    results["matchesHomeTeam"] = get_team_results(homeTeam["id"])
+    results["matchesAwayTeam"] = get_team_results(awayTeam["id"])
 
-with open("matchStatsNew.json", "w") as file:
-    json.dump(results, file, indent=4)
+    return results
+#endregion
+
+set_matches_from_request(f"{URL_BEGIN}/competitions/{COMPETITION_ID}/matches?dateFrom={DATE_FROM}&dateTo={DATE_TO}")
+match_info = get_match_info()
+teamsRaiting = set_teamRating_for_matchday(match_info["matchday"] - 1)
+update_raiting_by_previous_standings(match_info["matchday"])
+results = set_results(match_info["homeTeam"], match_info["awayTeam"])
+
+save_to_file(results)
