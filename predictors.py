@@ -36,6 +36,14 @@ data = {
     'aTeam_conceded_all_avg': [away_team_features['matchAwayTeamValues']['goalsConcededAllAvg']],
     'hTeam_rivals_rating_avg': [home_team_features['matchHomeTeamValues']["rivalsRatingAvg"]],
     'aTeam_rivals_rating_avg': [away_team_features['matchAwayTeamValues']["rivalsRatingAvg"]],
+    'h2h_hTeam_goals_all_avg': [home_team_features['head2headMatches']['matchHomeTeamValues']['goalsScoredAllAvg']],
+    'h2h_hTeam_conceded_all_avg': [home_team_features['head2headMatches']['matchHomeTeamValues']['goalsConcededAllAvg']],
+    'h2h_hTeam_home_goals_avg': [home_team_features['head2headMatches']['matchHomeTeamValues']['goalsScoredHomeAvg']],
+    'h2h_hTeam_home_conceded_avg': [home_team_features['head2headMatches']['matchHomeTeamValues']['goalsConcededHomeAvg']],
+    'h2h_aTeam_goals_all_avg': [away_team_features['head2headMatches']['matchAwayTeamValues']['goalsScoredAllAvg']],
+    'h2h_aTeam_conceded_all_avg': [away_team_features['head2headMatches']['matchAwayTeamValues']['goalsConcededAllAvg']],
+    'h2h_aTeam_away_goals_avg': [away_team_features['head2headMatches']['matchAwayTeamValues']['goalsScoredAwayAvg']],
+    'h2h_aTeam_away_conceded_avg': [away_team_features['head2headMatches']['matchAwayTeamValues']['goalsConcededAwayAvg']],
     'total_goals': [None]
 }
 
@@ -50,6 +58,14 @@ for match in data_json['matchesHomeTeam'][1:]:
     data['aTeam_conceded_all_avg'].append(match['matchAwayTeamValues']['goalsConcededAllAvg'])
     data['hTeam_rivals_rating_avg'].append(match['matchHomeTeamValues']["rivalsRatingAvg"])
     data['aTeam_rivals_rating_avg'].append(match['matchAwayTeamValues']["rivalsRatingAvg"])
+    data['h2h_hTeam_goals_all_avg'].append(match['head2headMatches']['matchHomeTeamValues']['goalsScoredAllAvg'])
+    data['h2h_hTeam_conceded_all_avg'].append(match['head2headMatches']['matchHomeTeamValues']['goalsConcededAllAvg'])
+    data['h2h_hTeam_home_goals_avg'].append(match['head2headMatches']['matchHomeTeamValues']['goalsScoredHomeAvg'])
+    data['h2h_hTeam_home_conceded_avg'].append(match['head2headMatches']['matchHomeTeamValues']['goalsConcededHomeAvg'])
+    data['h2h_aTeam_goals_all_avg'].append(match['head2headMatches']['matchAwayTeamValues']['goalsScoredAllAvg'])
+    data['h2h_aTeam_conceded_all_avg'].append(match['head2headMatches']['matchAwayTeamValues']['goalsConcededAllAvg'])
+    data['h2h_aTeam_away_goals_avg'].append(match['head2headMatches']['matchAwayTeamValues']['goalsScoredAwayAvg'])
+    data['h2h_aTeam_away_conceded_avg'].append(match['head2headMatches']['matchAwayTeamValues']['goalsConcededAwayAvg'])
     data['total_goals'].append(match['matchGoals'])
 
 for match in data_json['matchesAwayTeam'][1:]:
@@ -63,6 +79,14 @@ for match in data_json['matchesAwayTeam'][1:]:
     data['aTeam_conceded_all_avg'].append(match['matchAwayTeamValues']['goalsConcededAllAvg'])
     data['hTeam_rivals_rating_avg'].append(match['matchHomeTeamValues']["rivalsRatingAvg"])
     data['aTeam_rivals_rating_avg'].append(match['matchAwayTeamValues']["rivalsRatingAvg"])
+    data['h2h_hTeam_goals_all_avg'].append(match['head2headMatches']['matchHomeTeamValues']['goalsScoredAllAvg'])
+    data['h2h_hTeam_conceded_all_avg'].append(match['head2headMatches']['matchHomeTeamValues']['goalsConcededAllAvg'])
+    data['h2h_hTeam_home_goals_avg'].append(match['head2headMatches']['matchHomeTeamValues']['goalsScoredHomeAvg'])
+    data['h2h_hTeam_home_conceded_avg'].append(match['head2headMatches']['matchHomeTeamValues']['goalsConcededHomeAvg'])
+    data['h2h_aTeam_goals_all_avg'].append(match['head2headMatches']['matchAwayTeamValues']['goalsScoredAllAvg'])
+    data['h2h_aTeam_conceded_all_avg'].append(match['head2headMatches']['matchAwayTeamValues']['goalsConcededAllAvg'])
+    data['h2h_aTeam_away_goals_avg'].append(match['head2headMatches']['matchAwayTeamValues']['goalsScoredAwayAvg'])
+    data['h2h_aTeam_away_conceded_avg'].append(match['head2headMatches']['matchAwayTeamValues']['goalsConcededAwayAvg'])
     data['total_goals'].append(match['matchGoals'])
 #endregion
 
@@ -82,7 +106,9 @@ X = train_df[
     [
         'home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg', 
         'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg',
-        'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg'
+        'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg', 'h2h_hTeam_goals_all_avg', 'h2h_hTeam_conceded_all_avg',
+        'h2h_hTeam_home_goals_avg', 'h2h_hTeam_home_conceded_avg', 'h2h_aTeam_goals_all_avg', 'h2h_aTeam_conceded_all_avg',
+        'h2h_aTeam_away_goals_avg', 'h2h_aTeam_away_conceded_avg'
     ]
 ]
 y = train_df['total_goals']
@@ -193,7 +219,9 @@ print(f"R2 Score: {r2_score(y_test, y_pred_nn):.2f} \n")
 #region Prediction
 X_predict = predict_df[['home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg',
                         'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg',
-                        'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg']]
+                        'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg',  'h2h_hTeam_goals_all_avg', 'h2h_hTeam_conceded_all_avg',
+                        'h2h_hTeam_home_goals_avg', 'h2h_hTeam_home_conceded_avg', 'h2h_aTeam_goals_all_avg', 'h2h_aTeam_conceded_all_avg',
+                        'h2h_aTeam_away_goals_avg', 'h2h_aTeam_away_conceded_avg']]
 
 predicted_goals_linear = lin_reg.predict(X_predict)
 print(f"Regresja liniowa: Przewidywana liczba goli w meczu: {predicted_goals_linear[0]:.2f}")
@@ -215,7 +243,23 @@ predicted_goals_xgb = xgb_reg.predict(X_predict)
 print(f"XGBoost: Przewidywana liczba goli w meczu: {predicted_goals_xgb[0]:.2f}")
 
 predicted_goals_nn = model.predict(X_predict, verbose=0).flatten()
-print(f"Neural: Przewidywana liczba goli w meczu: {predicted_goals_nn[0]:.2f} \n")
+print(f"Neural: Przewidywana liczba goli w meczu: {predicted_goals_nn[0]:.2f}")
+
+print(f"Naive: Przewidywana liczba goli w meczu: {naive_mse:.2f} \n")
+
+print("-------------------------")
+print("SUMMARY")
+
+predicted_goals = [predicted_goals_linear[0], predicted_goals_polynomial[0], predicted_goals_decisionTree[0], predicted_goals_rf[0], predicted_goals_gb[0], 
+                   predicted_goals_xgb[0], predicted_goals_nn[0], naive_mse]
+
+valid_predicted = [value for value in predicted_goals if 0.01 < value <= 6.00]
+if valid_predicted:
+    summary_prediction = sum(valid_predicted) / len(valid_predicted)
+else:
+    summary_prediction = 0.0
+
+print(f"Średnia przewidywana liczba goli: {summary_prediction:.2f}")
 #endregion
 
 #region Plot
