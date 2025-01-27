@@ -7,31 +7,45 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.dummy import DummyRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingRegressor
+from scikeras.wrappers import KerasRegressor
 from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Dense
 from utilities import load_from_file
 from termcolor import colored
+import tensorflow as tf
 
 model_details = {}
 
-def calculate_cross_score(model, name):
-    scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_mean_squared_error')
+def calculate_cross_val_score(modelName, crossValModel, useStandarScaler, additionalStep = None, additionalStepName = ""):
+    pipelineSteps = []
+    if additionalStep != None:
+        pipelineSteps.append((f'{additionalStepName}', additionalStep))
+    if useStandarScaler:
+        pipelineSteps.append(('scaler', StandardScaler()))
+    pipelineSteps.append(('model', crossValModel))
+    pipeline = Pipeline(pipelineSteps)    
+    scores = cross_val_score(pipeline, X_train, y_train, cv=5, scoring='neg_mean_squared_error', error_score='raise')
     mean_mse = -scores.mean()
-    print(f"Cross-validated MSE for {name}: {mean_mse:.2f}")
+    model_details[modelName]["CrossValScore"] = mean_mse        
 
-def set_model_details(modelName, y_test, y_pred):
+def set_model_details(modelName, mseValue, r2Value):
     model_details[modelName] = {
-        "MSE": mean_squared_error(y_test, y_pred),
-        "R2": r2_score(y_test, y_pred),
+        "MSE": mseValue,
+        "R2": r2Value,
+        "CrossValScore": 0,
         "Prediction": 0
     }
 
 def print_model_info(header, modelName):
     print(header)
     print(f"Mean Squared Error: {model_details[modelName]['MSE']:.2f}")
+    print(f"Cross Validation Score: {model_details[modelName]['CrossValScore']:.2f}")
     print(f"R2 Score: {model_details[modelName]['R2']:.2f} \n")    
 
 def set_and_print_model_prediction(header, modelName, value):
@@ -132,23 +146,29 @@ X = train_df[
 ]
 y = train_df['total_goals']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# for column in X_train.columns:
+#     print(f"{column}: mean={np.mean(X_train[column]):.2f}, std={np.std(X_train[column]):.2f}")
 #endregion
 
 #region Naive
-naive_pred = np.mean(y_train)
+naive_pred = np.median(y_train)
 naive_mse = np.mean((y_test - naive_pred) ** 2)
-print(f"Naive Baseline MSE: {naive_mse}")
+
+set_model_details("Naive", naive_mse, 0)
+calculate_cross_val_score("Naive", DummyRegressor(strategy='median'), True)
+print(f"\nNaive Baseline MSE: {round(naive_mse, 2)}")
 #endregion
 
 #region LinearRegression
 lin_reg = LinearRegression()
-# calculate_cross_score(lin_reg, "Linear")
 lin_reg.fit(X_train, y_train)
 
 y_pred = lin_reg.predict(X_test)
 y_pred = np.maximum(0, y_pred)
 
-set_model_details("Linear", y_test, y_pred)
+set_model_details("Linear", mean_squared_error(y_test, y_pred), r2_score(y_test, y_pred))
+calculate_cross_val_score("Linear", lin_reg, True)
 print_model_info("\nRegresja Liniowa:", "Linear")
 #endregion
 
@@ -163,71 +183,77 @@ poly_reg.fit(X_train_poly, y_train)
 y_pred_poly = poly_reg.predict(X_test_poly)
 y_pred_poly = np.maximum(0, y_pred_poly)
 
-set_model_details("Polynomial", y_test, y_pred_poly)
+set_model_details("Polynomial", mean_squared_error(y_test, y_pred_poly), r2_score(y_test, y_pred_poly))
+calculate_cross_val_score("Polynomial", poly_reg, True, poly, "poly")
 print_model_info("Regresja Wielomianowa (stopień 2):", "Polynomial")
 #endregion
 
 #region DecisionTree
-tree_reg = DecisionTreeRegressor(max_depth=3, random_state=42)
-# calculate_cross_score(tree_reg, "DecisionTree")
+tree_reg = DecisionTreeRegressor(max_depth=5, random_state=42)
 tree_reg.fit(X_train, y_train)
 
 y_pred_tree = tree_reg.predict(X_test)
 y_pred_tree = np.maximum(0, y_pred_tree)
 
-set_model_details("DecisionTree", y_test, y_pred_tree)
+set_model_details("DecisionTree", mean_squared_error(y_test, y_pred_tree), r2_score(y_test, y_pred_tree))
+calculate_cross_val_score("DecisionTree", tree_reg, False)
 print_model_info("Drzewo decyzyjne:", "DecisionTree")
 #endregion
 
 #region RandomForest
 rf_regressor = RandomForestRegressor(n_estimators=200, random_state=42)
-# calculate_cross_score(rf_regressor, "RandomForest")
 rf_regressor.fit(X_train, y_train)
 
 y_pred_rf = rf_regressor.predict(X_test)
 
-set_model_details("RandomForest", y_test, y_pred_rf)
+set_model_details("RandomForest", mean_squared_error(y_test, y_pred_rf), r2_score(y_test, y_pred_rf))
+calculate_cross_val_score("RandomForest", rf_regressor, False)
 print_model_info("Random Forest:", "RandomForest")
 #endregion
 
 #region GradientBoosting
 gb_regressor = GradientBoostingRegressor(random_state=42)
-# calculate_cross_score(gb_regressor, "Gradient")
 gb_regressor.fit(X_train, y_train)
 
 y_pred_gb = gb_regressor.predict(X_test)
 
-set_model_details("GradientBoosting", y_test, y_pred_gb)
+set_model_details("GradientBoosting", mean_squared_error(y_test, y_pred_gb), r2_score(y_test, y_pred_gb))
+calculate_cross_val_score("GradientBoosting", gb_regressor, False)
 print_model_info("Gradient Boosting:", "GradientBoosting")
 #endregion
 
 #region XGBRegressor
 xgb_reg = XGBRegressor(n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42)
-# calculate_cross_score(xgb_reg, "XGBRegressor")
 xgb_reg.fit(X_train, y_train)
 
 y_pred_xgb = xgb_reg.predict(X_test)
-# y_pred_xgb = np.maximum(0, y_pred_xgb)
 
-set_model_details("XGBoost", y_test, y_pred_xgb)
+set_model_details("XGBoost", mean_squared_error(y_test, y_pred_xgb), r2_score(y_test, y_pred_xgb))
+calculate_cross_val_score("XGBoost", xgb_reg, False)
 print_model_info("XGBoost:", "XGBoost")
 #endregion
 
 #region NeuralNetwork
-model = Sequential([
-    Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
-    Dense(64, activation='relu'),
-    Dense(32, activation='relu'),
-    Dense(16, activation='relu'),
-    Dense(1, activation='relu')
-])
+def create_nn_model():    
+    nn_model = Sequential([
+        Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
+        Dense(64, activation='relu'),
+        Dense(32, activation='relu'),
+        Dense(16, activation='relu'),
+        Dense(1, activation='relu')
+    ])
 
-model.compile(optimizer='adam', loss='mse')
-model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=100, batch_size=4, verbose=0)
+    nn_model.compile(optimizer='adam', loss='mse')
+    return nn_model
 
-y_pred_nn = model.predict(X_test).flatten()
+set_model_details("NeuralNetwork", 0, 0)
+calculate_cross_val_score("NeuralNetwork", KerasRegressor(model=create_nn_model, epochs=50, batch_size=4, verbose=0), False)
 
-set_model_details("NeuralNetwork", y_test, y_pred_nn)
+nn_model = create_nn_model()
+nn_model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=100, batch_size=4, verbose=0)
+y_pred_nn = nn_model.predict(X_test).flatten()
+
+set_model_details("NeuralNetwork", mean_squared_error(y_test, y_pred_nn), r2_score(y_test, y_pred_nn))
 print_model_info("Neural network:", "NeuralNetwork")
 #endregion
 
@@ -244,7 +270,7 @@ set_and_print_model_prediction("Drzewo decyzyjne", "DecisionTree", tree_reg.pred
 set_and_print_model_prediction("Random forest", "RandomForest", rf_regressor.predict(X_predict)[0])
 set_and_print_model_prediction("Gradient Boosting", "GradientBoosting", gb_regressor.predict(X_predict)[0])
 set_and_print_model_prediction("XGBoost", "XGBoost", xgb_reg.predict(X_predict)[0])
-set_and_print_model_prediction("Neural", "NeuralNetwork", model.predict(X_predict, verbose=0).flatten()[0])
+set_and_print_model_prediction("Neural", "NeuralNetwork", nn_model.predict(X_predict, verbose=0).flatten()[0])
 print(colored(f"Naive: Przewidywana liczba goli w meczu: {naive_mse:.2f}", "green"))
 
 print("-------------------------")
