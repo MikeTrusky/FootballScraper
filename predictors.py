@@ -13,15 +13,34 @@ import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Dense
 from utilities import load_from_file
+from termcolor import colored
+
+model_details = {}
 
 def calculate_cross_score(model, name):
     scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_mean_squared_error')
     mean_mse = -scores.mean()
     print(f"Cross-validated MSE for {name}: {mean_mse:.2f}")
 
-data_json = load_from_file()
+def set_model_details(modelName, y_test, y_pred):
+    model_details[modelName] = {
+        "MSE": mean_squared_error(y_test, y_pred),
+        "R2": r2_score(y_test, y_pred),
+        "Prediction": 0
+    }
+
+def print_model_info(header, modelName):
+    print(header)
+    print(f"Mean Squared Error: {model_details[modelName]['MSE']:.2f}")
+    print(f"R2 Score: {model_details[modelName]['R2']:.2f} \n")    
+
+def set_and_print_model_prediction(header, modelName, value):
+    model_details[modelName]["Prediction"] = value
+    print(colored(f"{header}: Przewidywana liczba goli w meczu: {value:.2f}", "green"))
 
 #region DataInitialization
+data_json = load_from_file()
+
 home_team_features = data_json['matchesHomeTeam'][0]
 away_team_features = data_json['matchesAwayTeam'][0]
 
@@ -129,9 +148,8 @@ lin_reg.fit(X_train, y_train)
 y_pred = lin_reg.predict(X_test)
 y_pred = np.maximum(0, y_pred)
 
-print("\nRegresja Liniowa:")
-print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred):.2f} \n")
+set_model_details("Linear", y_test, y_pred)
+print_model_info("\nRegresja Liniowa:", "Linear")
 #endregion
 
 #region PolynomialRegression
@@ -145,9 +163,8 @@ poly_reg.fit(X_train_poly, y_train)
 y_pred_poly = poly_reg.predict(X_test_poly)
 y_pred_poly = np.maximum(0, y_pred_poly)
 
-print("Regresja Wielomianowa (stopień 2):")
-print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_poly):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred_poly):.2f} \n")
+set_model_details("Polynomial", y_test, y_pred_poly)
+print_model_info("Regresja Wielomianowa (stopień 2):", "Polynomial")
 #endregion
 
 #region DecisionTree
@@ -158,9 +175,8 @@ tree_reg.fit(X_train, y_train)
 y_pred_tree = tree_reg.predict(X_test)
 y_pred_tree = np.maximum(0, y_pred_tree)
 
-print("Drzewo decyzyjne:")
-print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_tree):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred_tree):.2f} \n")
+set_model_details("DecisionTree", y_test, y_pred_tree)
+print_model_info("Drzewo decyzyjne:", "DecisionTree")
 #endregion
 
 #region RandomForest
@@ -170,9 +186,8 @@ rf_regressor.fit(X_train, y_train)
 
 y_pred_rf = rf_regressor.predict(X_test)
 
-print("Random Forest:")
-print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_rf):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred_rf):.2f} \n")
+set_model_details("RandomForest", y_test, y_pred_rf)
+print_model_info("Random Forest:", "RandomForest")
 #endregion
 
 #region GradientBoosting
@@ -181,9 +196,9 @@ gb_regressor = GradientBoostingRegressor(random_state=42)
 gb_regressor.fit(X_train, y_train)
 
 y_pred_gb = gb_regressor.predict(X_test)
-print("Gradient Boosting:")
-print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_gb):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred_gb):.2f} \n")
+
+set_model_details("GradientBoosting", y_test, y_pred_gb)
+print_model_info("Gradient Boosting:", "GradientBoosting")
 #endregion
 
 #region XGBRegressor
@@ -194,26 +209,26 @@ xgb_reg.fit(X_train, y_train)
 y_pred_xgb = xgb_reg.predict(X_test)
 # y_pred_xgb = np.maximum(0, y_pred_xgb)
 
-print("XGBoost:")
-print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_xgb):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred_xgb):.2f} \n")
+set_model_details("XGBoost", y_test, y_pred_xgb)
+print_model_info("XGBoost:", "XGBoost")
 #endregion
 
 #region NeuralNetwork
 model = Sequential([
-    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
+    Dense(64, activation='relu'),
     Dense(32, activation='relu'),
+    Dense(16, activation='relu'),
     Dense(1, activation='relu')
 ])
 
 model.compile(optimizer='adam', loss='mse')
-model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=50, batch_size=4, verbose=0)
+model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=100, batch_size=4, verbose=0)
 
 y_pred_nn = model.predict(X_test).flatten()
 
-print("Neural network:")
-print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred_nn):.2f}")
-print(f"R2 Score: {r2_score(y_test, y_pred_nn):.2f} \n")
+set_model_details("NeuralNetwork", y_test, y_pred_nn)
+print_model_info("Neural network:", "NeuralNetwork")
 #endregion
 
 #region Prediction
@@ -223,35 +238,21 @@ X_predict = predict_df[['home_goals_avg', 'away_goals_avg', 'home_conceded_avg',
                         'h2h_hTeam_home_goals_avg', 'h2h_hTeam_home_conceded_avg', 'h2h_aTeam_goals_all_avg', 'h2h_aTeam_conceded_all_avg',
                         'h2h_aTeam_away_goals_avg', 'h2h_aTeam_away_conceded_avg']]
 
-predicted_goals_linear = lin_reg.predict(X_predict)
-print(f"Regresja liniowa: Przewidywana liczba goli w meczu: {predicted_goals_linear[0]:.2f}")
-
-X_predict_poly = poly.transform(X_predict)
-predicted_goals_polynomial = poly_reg.predict(X_predict_poly)
-print(f"Regresja wielomianowa: Przewidywana liczba goli w meczu: {predicted_goals_polynomial[0]:.2f}")
-
-predicted_goals_decisionTree = tree_reg.predict(X_predict)
-print(f"Drzewo decyzyjne: Przewidywana liczba goli w meczu: {predicted_goals_decisionTree[0]:.2f}")
-
-predicted_goals_rf = rf_regressor.predict(X_predict)
-print(f"Random forest: Przewidywana liczba goli w meczu: {predicted_goals_rf[0]:.2f}")
-
-predicted_goals_gb = gb_regressor.predict(X_predict)
-print(f"Gradient Boosting: Przewidywana liczba goli w meczu: {predicted_goals_gb[0]:.2f}")
-
-predicted_goals_xgb = xgb_reg.predict(X_predict)
-print(f"XGBoost: Przewidywana liczba goli w meczu: {predicted_goals_xgb[0]:.2f}")
-
-predicted_goals_nn = model.predict(X_predict, verbose=0).flatten()
-print(f"Neural: Przewidywana liczba goli w meczu: {predicted_goals_nn[0]:.2f}")
-
-print(f"Naive: Przewidywana liczba goli w meczu: {naive_mse:.2f} \n")
+set_and_print_model_prediction("Regresja liniowa", "Linear", lin_reg.predict(X_predict)[0])
+set_and_print_model_prediction("Regresja wielomianowa", "Polynomial", poly_reg.predict(poly.transform(X_predict))[0])
+set_and_print_model_prediction("Drzewo decyzyjne", "DecisionTree", tree_reg.predict(X_predict)[0])
+set_and_print_model_prediction("Random forest", "RandomForest", rf_regressor.predict(X_predict)[0])
+set_and_print_model_prediction("Gradient Boosting", "GradientBoosting", gb_regressor.predict(X_predict)[0])
+set_and_print_model_prediction("XGBoost", "XGBoost", xgb_reg.predict(X_predict)[0])
+set_and_print_model_prediction("Neural", "NeuralNetwork", model.predict(X_predict, verbose=0).flatten()[0])
+print(colored(f"Naive: Przewidywana liczba goli w meczu: {naive_mse:.2f}", "green"))
 
 print("-------------------------")
 print("SUMMARY")
 
-predicted_goals = [predicted_goals_linear[0], predicted_goals_polynomial[0], predicted_goals_decisionTree[0], predicted_goals_rf[0], predicted_goals_gb[0], 
-                   predicted_goals_xgb[0], predicted_goals_nn[0], naive_mse]
+predicted_goals = [model_details["Linear"]["Prediction"], model_details["Polynomial"]["Prediction"], model_details["DecisionTree"]["Prediction"], 
+                   model_details["RandomForest"]["Prediction"], model_details["GradientBoosting"]["Prediction"], 
+                   model_details["XGBoost"]["Prediction"], model_details["NeuralNetwork"]["Prediction"], naive_mse]
 
 valid_predicted = [value for value in predicted_goals if 0.01 < value <= 6.00]
 if valid_predicted:
@@ -259,7 +260,7 @@ if valid_predicted:
 else:
     summary_prediction = 0.0
 
-print(f"Średnia przewidywana liczba goli: {summary_prediction:.2f}")
+print(colored(f"Średnia przewidywana liczba goli: {summary_prediction:.2f}", "green"))
 #endregion
 
 #region Plot
