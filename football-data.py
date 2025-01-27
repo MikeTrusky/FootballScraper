@@ -63,6 +63,7 @@ def get_team_match_info(teamId, teamMatches, match, matchday):
             "matchHomeTeamValues": h2h_homeTeamValues,
             "matchAwayTeamValues": h2h_awayTeamValues,
         },
+        "rivalRatingDifference": round(homeTeamValues["rivalsRatingAvg"] - awayTeamValues["rivalsRatingAvg"], 2),
         "matchGoals": match["score"]["totalGoals"]
     }
 
@@ -193,7 +194,7 @@ def set_results(homeTeam, awayTeam, matchday):
     results["homeTeamName"] = homeTeam["name"]
     results["awayTeamName"] = awayTeam["name"]
     results["matchesHomeTeam"] = get_team_results(homeTeam["id"], matchday)
-    results["matchesAwayTeam"] = get_team_results(awayTeam["id"], matchday)
+    results["matchesAwayTeam"] = get_team_results(awayTeam["id"], matchday)    
 
     return results
 
