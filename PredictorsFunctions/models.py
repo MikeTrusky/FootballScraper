@@ -11,6 +11,8 @@ from keras.models import Sequential
 from keras.layers import Dense
 from scikeras.wrappers import KerasRegressor
 from sklearn.linear_model import Ridge
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -54,29 +56,46 @@ def polynomial_model(X_train, y_train, X_test, y_test):
     return poly, ridge_reg    
     
 def decisionTree_model(X_train, y_train, X_test, y_test):
-    tree_reg = DecisionTreeRegressor(max_depth=5, random_state=42)
-    tree_reg.fit(X_train, y_train)
+    param_grid = {
+        'max_depth': [2, 3, 5, 7, 10, 15, None],
+        'min_samples_split': [2, 5, 10, 20],
+        'min_samples_leaf': [1, 2, 4, 10]
+    }
 
-    y_pred_tree = tree_reg.predict(X_test)
-    y_pred_tree = np.maximum(0, y_pred_tree)
+    tree_reg = DecisionTreeRegressor(random_state=42)
+    grid_search = GridSearchCV(tree_reg, param_grid, cv=5, scoring='neg_mean_squared_error')
+    grid_search.fit(X_train, y_train)
 
-    set_model_details("DecisionTree", mean_squared_error(y_test, y_pred_tree), r2_score(y_test, y_pred_tree))
-    calculate_cross_val_score("DecisionTree", tree_reg, False, X_train, y_train)
+    best_tree = grid_search.best_estimator_
+    
+    y_pred_tree = np.maximum(0, best_tree.predict(X_test))
+
+    set_model_details("DecisionTree", mean_squared_error(y_test, y_pred_tree), r2_score(y_test, y_pred_tree))    
+    calculate_cross_val_score("DecisionTree", best_tree, False, X_train, y_train)
     print_model_info("Drzewo decyzyjne:", "DecisionTree")
-
-    return tree_reg
+    
+    return best_tree
 
 def randomForest_model(X_train, y_train, X_test, y_test):
-    rf_regressor = RandomForestRegressor(n_estimators=200, random_state=42)
-    rf_regressor.fit(X_train, y_train)
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [None, 5, 10, 15],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['sqrt', 'log2', None]
+    }
 
-    y_pred_rf = rf_regressor.predict(X_test)
+    rand_search = RandomizedSearchCV(RandomForestRegressor(random_state=42), param_grid, n_iter=10, cv=5, scoring='neg_mean_squared_error')
+    rand_search.fit(X_train, y_train)
+    best_rf = rand_search.best_estimator_        
+
+    y_pred_rf = np.maximum(0, best_rf.predict(X_test))
 
     set_model_details("RandomForest", mean_squared_error(y_test, y_pred_rf), r2_score(y_test, y_pred_rf))
-    calculate_cross_val_score("RandomForest", rf_regressor, False, X_train, y_train)
+    calculate_cross_val_score("RandomForest", best_rf, False, X_train, y_train)
     print_model_info("Random Forest:", "RandomForest")
 
-    return rf_regressor
+    return best_rf
 
 def gradientBoosting_model(X_train, y_train, X_test, y_test):
     gb_regressor = GradientBoostingRegressor(random_state=42)
