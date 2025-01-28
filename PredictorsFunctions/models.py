@@ -22,12 +22,11 @@ from sklearn.metrics import mean_squared_error, r2_score
 from PredictorsFunctions.modelsUtilities import set_model_details, calculate_cross_val_score, print_model_info, update_model_details_CVS
 
 def naive_model(X_train, y_train, y_test):
-    naive_pred = np.median(y_train)
+    naive_pred = np.mean(y_train)
     naive_mse = np.mean((y_test - naive_pred) ** 2)
 
     set_model_details("Naive", naive_mse, 0)
-    calculate_cross_val_score("Naive", DummyRegressor(strategy='median'), True, X_train, y_train)
-    print(f"\nNaive Baseline MSE: {round(naive_mse, 2)}")
+    calculate_cross_val_score("Naive", DummyRegressor(strategy='mean'), True, X_train, y_train)    
 
     return naive_mse
 
@@ -39,7 +38,7 @@ def linear_model(X_train, y_train, X_test, y_test):
 
     set_model_details("Linear", mean_squared_error(y_test, y_pred), r2_score(y_test, y_pred))
     calculate_cross_val_score("Linear", lin_reg, False, X_train, y_train)
-    print_model_info("Regresja Liniowa:", "Linear")
+    print_model_info("\nRegresja Liniowa:", "Linear")
 
     return lin_reg
 

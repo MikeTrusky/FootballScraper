@@ -29,7 +29,7 @@ def update_model_details_CVS(modelName, crossValScoreValue):
     models_details[modelName]["CrossValScore"] = crossValScoreValue
 
 def print_model_info(header, modelName):
-    print(header + " done!")
+    print(colored(header + " done!", 'green'))
     # print(f"Mean Squared Error: {models_details[modelName]['MSE']:.2f}")
     # print(f"Cross Validation Score: {models_details[modelName]['CrossValScore']:.2f}")
     # print(f"R2 Score: {models_details[modelName]['R2']:.2f} \n")

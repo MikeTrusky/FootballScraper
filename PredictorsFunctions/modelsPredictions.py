@@ -64,6 +64,35 @@ def summary_table(model_details):
             model_details[model_name]["Prediction"],
         ])
 
+    table_data.sort(key=lambda x: x[1])
+
     headers = ["Model", "MSE (Lower Better)", "R2 Score (Higher Better - max value: 1)", "Cross Validation Score (Lower Better)", "Predicted goals"]
+    headers = [colored(header, 'cyan') for header in headers]
+
+    mse_values = [x[1] for x in table_data]
+    r2_values = [x[2] for x in table_data]
+    cvs_values = [x[3] for x in table_data]
+
+    def colorize_row(row):
+        model_name = row[0]
+        mse = row[1]
+        r2 = row[2]
+        cvs = row[3]
+        
+        if model_name == "Naive":
+            row = [colored(value, 'blue') for value in row]
+        
+        if mse == min(mse_values):
+            row[1] = colored(row[1], 'green')
+        
+        if r2 == max(r2_values):
+            row[2] = colored(row[2], 'green')
+        
+        if cvs == min(cvs_values):
+            row[3] = colored(row[3], 'green')
+
+        return row
+    
+    table_data = [colorize_row(row) for row in table_data]
 
     print(tabulate(table_data, headers=headers, tablefmt="grid"))
