@@ -28,6 +28,7 @@ def main():
     predictors.predict_goals_xgBoost(X_predict, xgb_reg)
     predictors.predict_goals_neuralNetwork(X_predict, nn_model)
 
-    predictors.prediction_summary(models_details, naive_mse)
+    predictors.summary_table(models_details)
+    predictors.prediction_summary(models_details)
 
 main()

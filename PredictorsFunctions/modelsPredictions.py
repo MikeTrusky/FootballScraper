@@ -1,5 +1,6 @@
 from PredictorsFunctions.modelsUtilities import set_and_print_model_prediction
 from termcolor import colored
+from tabulate import tabulate
 
 def prepare_X_predict(predict_df):
     X_predict = predict_df[['home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg',
@@ -34,18 +35,36 @@ def predict_goals_xgBoost(X_predict, xgb_reg):
 def predict_goals_neuralNetwork(X_predict, nn_model):
     set_and_print_model_prediction("Neural", "NeuralNetwork", nn_model.predict(X_predict, verbose=0).flatten()[0])
 
-def prediction_summary(models_details, naive_mse):
+def prediction_summary(models_details):
     print("-------------------------")
     print("SUMMARY")
 
     predicted_goals = [models_details["Linear"]["Prediction"], models_details["Polynomial"]["Prediction"], models_details["DecisionTree"]["Prediction"], 
                     models_details["RandomForest"]["Prediction"], models_details["GradientBoosting"]["Prediction"], 
-                    models_details["XGBoost"]["Prediction"], models_details["NeuralNetwork"]["Prediction"], naive_mse]
+                    models_details["XGBoost"]["Prediction"], models_details["NeuralNetwork"]["Prediction"]]
 
+    print(colored(f"Średnia przewidywana liczba goli: {calculate_mean_prediction_goals(predicted_goals):.2f} \n", "green"))
+
+def calculate_mean_prediction_goals(predicted_goals):
     valid_predicted = [value for value in predicted_goals if 0.01 < value <= 6.00]
     if valid_predicted:
         summary_prediction = sum(valid_predicted) / len(valid_predicted)
     else:
         summary_prediction = 0.0
 
-    print(colored(f"Średnia przewidywana liczba goli: {summary_prediction:.2f}", "green"))
+    return summary_prediction
+
+def summary_table(model_details):
+    table_data = []
+    for model_name, details in model_details.items():
+        table_data.append([
+            model_name,
+            model_details[model_name]["MSE"],
+            model_details[model_name]["R2"],
+            model_details[model_name]["CrossValScore"],
+            model_details[model_name]["Prediction"],
+        ])
+
+    headers = ["Model", "MSE (Lower Better)", "R2 Score (Higher Better)", "Cross Validation Score (Lower Better)", "Predicted goals"]
+
+    print(tabulate(table_data, headers=headers, tablefmt="grid"))
