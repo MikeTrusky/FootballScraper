@@ -10,6 +10,7 @@ from xgboost import XGBRegressor
 from keras.models import Sequential
 from keras.layers import Dense
 from scikeras.wrappers import KerasRegressor
+from sklearn.linear_model import Ridge
 
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -32,7 +33,7 @@ def linear_model(X_train, y_train, X_test, y_test):
     y_pred = lin_reg.predict(X_test)
 
     set_model_details("Linear", mean_squared_error(y_test, y_pred), r2_score(y_test, y_pred))
-    calculate_cross_val_score("Linear", lin_reg, True, X_train, y_train)
+    calculate_cross_val_score("Linear", lin_reg, False, X_train, y_train)
     print_model_info("Regresja Liniowa:", "Linear")
 
     return lin_reg
@@ -42,18 +43,16 @@ def polynomial_model(X_train, y_train, X_test, y_test):
     X_train_poly = poly.fit_transform(X_train)
     X_test_poly = poly.transform(X_test)
 
-    poly_reg = LinearRegression()
-    poly_reg.fit(X_train_poly, y_train)
-
-    y_pred_poly = poly_reg.predict(X_test_poly)
-    y_pred_poly = np.maximum(0, y_pred_poly)
-
-    set_model_details("Polynomial", mean_squared_error(y_test, y_pred_poly), r2_score(y_test, y_pred_poly))
-    calculate_cross_val_score("Polynomial", poly_reg, True, X_train, y_train, poly, "poly")
-    print_model_info("Regresja Wielomianowa (stopień 2):", "Polynomial")
+    ridge_reg = Ridge(alpha=1.0)
+    ridge_reg.fit(X_train_poly, y_train)
     
-    return poly, poly_reg
+    y_pred_poly = ridge_reg.predict(X_test_poly)
 
+    set_model_details("Polynomial", mean_squared_error(y_test, y_pred_poly), r2_score(y_test, y_pred_poly))    
+    calculate_cross_val_score("Polynomial", ridge_reg, False, X_train, y_train, poly, "poly")
+    print_model_info("Regresja Wielomianowa (stopień 2):", "Polynomial")
+    return poly, ridge_reg    
+    
 def decisionTree_model(X_train, y_train, X_test, y_test):
     tree_reg = DecisionTreeRegressor(max_depth=5, random_state=42)
     tree_reg.fit(X_train, y_train)
