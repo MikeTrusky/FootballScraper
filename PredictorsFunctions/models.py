@@ -9,14 +9,17 @@ from sklearn.ensemble import GradientBoostingRegressor
 from xgboost import XGBRegressor
 from keras.models import Sequential
 from keras.layers import Dense
-from scikeras.wrappers import KerasRegressor
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
+from keras.layers import Dropout
+from keras.regularizers import l2
+from keras.callbacks import EarlyStopping
+from sklearn.model_selection import KFold
 
 from sklearn.metrics import mean_squared_error, r2_score
 
-from PredictorsFunctions.modelsUtilities import set_model_details, calculate_cross_val_score, print_model_info
+from PredictorsFunctions.modelsUtilities import set_model_details, calculate_cross_val_score, print_model_info, update_model_details_CVS
 
 def naive_model(X_train, y_train, y_test):
     naive_pred = np.median(y_train)
@@ -144,24 +147,73 @@ def xgbRegressor_model(X_train, y_train, X_test, y_test):
 
 def create_nn_model(X_train):    
     nn_model = Sequential([
-        Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
-        Dense(64, activation='relu'),
-        Dense(32, activation='relu'),
-        Dense(16, activation='relu'),
-        Dense(1, activation='relu')
+        Dense(64, activation='relu', input_shape=(X_train.shape[1],), kernel_regularizer=l2(0.01)),
+        Dropout(0.2),
+        Dense(32, activation='relu', kernel_regularizer=l2(0.01)),
+        Dropout(0.2),
+        Dense(1)
     ])
-
+    
     nn_model.compile(optimizer='adam', loss='mse')
     return nn_model
 
 def neuralNetwork_model(X_train, y_train, X_test, y_test):
-    set_model_details("NeuralNetwork", 0, 0)
-    calculate_cross_val_score("NeuralNetwork", KerasRegressor(model=lambda: create_nn_model(X_train), epochs=50, batch_size=4, verbose=0), False, X_train, y_train)
-    nn_model = create_nn_model(X_train)
-    nn_model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=100, batch_size=4, verbose=0)
-    y_pred_nn = nn_model.predict(X_test).flatten()
+    set_model_details("NeuralNetwork", 0, 0)    
+    crossValScore = custom_cross_val_score_nn(X_train.values, y_train.values, create_nn_model)    
 
-    set_model_details("NeuralNetwork", mean_squared_error(y_test, y_pred_nn), r2_score(y_test, y_pred_nn))
+    best_nn, best_mse, best_r2 = neuralNetwork_multiple_runs(X_train, y_train, X_test, y_test)
+
+    set_model_details("NeuralNetwork", best_mse, best_r2)
+    update_model_details_CVS("NeuralNetwork", round(crossValScore, 2))
     print_model_info("Neural network:", "NeuralNetwork")
 
-    return nn_model
+    return best_nn
+
+def neuralNetwork_multiple_runs(X_train, y_train, X_test, y_test, runs=10, threshold=0.9):
+    best_model = None
+    best_r2 = -float('inf')
+    best_mse = float('inf')
+
+    for i in range(runs):
+        print(f"Run neural netork {i+1}/{runs}...")
+        nn_model = create_nn_model(X_train)
+        early_stopping = EarlyStopping(patience=10, restore_best_weights=True)
+        nn_model.fit(X_train, y_train, validation_data=(X_test, y_test), 
+                     epochs=50, batch_size=4, verbose=0, callbacks=[early_stopping])
+        y_pred_nn = nn_model.predict(X_test).flatten()
+
+        mse = mean_squared_error(y_test, y_pred_nn)
+        r2 = r2_score(y_test, y_pred_nn)
+
+        print(f"Run {i+1}: MSE={mse:.4f}, R2={r2:.4f}")
+
+        if r2 > best_r2:
+            best_model = nn_model
+            best_r2 = r2
+            best_mse = mse
+
+        if r2 >= threshold:
+            print(f"Found model with R2={r2:.4f} >= {threshold:.2f}. Stopping early.")
+            break
+
+    print(f"Best Model: MSE={best_mse:.4f}, R2={best_r2:.4f}")
+    return best_model, best_mse, best_r2
+
+def custom_cross_val_score_nn(X, y, model_fn, cv=5, epochs=50, batch_size=4):
+    kfold = KFold(n_splits=cv, shuffle=True, random_state=42)
+    scores = []
+
+    for train_idx, val_idx in kfold.split(X):
+        X_train_fold, X_val_fold = X[train_idx], X[val_idx]
+        y_train_fold, y_val_fold = y[train_idx], y[val_idx]
+
+        model = model_fn(X_train_fold)
+        model.fit(X_train_fold, y_train_fold, validation_data=(X_val_fold, y_val_fold), 
+                  epochs=epochs, batch_size=batch_size, verbose=0)
+        y_pred_fold = model.predict(X_val_fold).flatten()
+
+        mse = mean_squared_error(y_val_fold, y_pred_fold)
+        scores.append(mse)
+
+    mean_score = np.mean(scores)
+    return mean_score

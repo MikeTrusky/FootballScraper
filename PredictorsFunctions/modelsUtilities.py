@@ -25,6 +25,9 @@ def set_model_details(modelName, mseValue, r2Value):
         "Prediction": 0
     }    
 
+def update_model_details_CVS(modelName, crossValScoreValue):
+    models_details[modelName]["CrossValScore"] = crossValScoreValue
+
 def print_model_info(header, modelName):
     print(header + " done!")
     # print(f"Mean Squared Error: {models_details[modelName]['MSE']:.2f}")
