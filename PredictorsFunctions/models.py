@@ -98,28 +98,49 @@ def randomForest_model(X_train, y_train, X_test, y_test):
     return best_rf
 
 def gradientBoosting_model(X_train, y_train, X_test, y_test):
-    gb_regressor = GradientBoostingRegressor(random_state=42)
-    gb_regressor.fit(X_train, y_train)
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'learning_rate': [0.01, 0.05, 0.1, 0.2],
+        'max_depth': [3, 5, 7],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }   
 
-    y_pred_gb = gb_regressor.predict(X_test)
+    grid_search = GridSearchCV(GradientBoostingRegressor(random_state=42), param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    best_gb = grid_search.best_estimator_
+
+    y_pred_gb = np.maximum(0, best_gb.predict(X_test))
 
     set_model_details("GradientBoosting", mean_squared_error(y_test, y_pred_gb), r2_score(y_test, y_pred_gb))
-    calculate_cross_val_score("GradientBoosting", gb_regressor, False, X_train, y_train)
+    calculate_cross_val_score("GradientBoosting", best_gb, False, X_train, y_train)
     print_model_info("Gradient Boosting:", "GradientBoosting")
 
-    return gb_regressor
+    return best_gb
 
 def xgbRegressor_model(X_train, y_train, X_test, y_test):
-    xgb_reg = XGBRegressor(n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42)
-    xgb_reg.fit(X_train, y_train)
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.8, 1.0],
+        'colsample_bytree': [0.8, 1.0],
+        'gamma': [0, 1, 5]
+    }
 
-    y_pred_xgb = xgb_reg.predict(X_test)
+    grid_search = GridSearchCV(XGBRegressor(random_state=42), param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    best_xgb = grid_search.best_estimator_    
+
+    y_pred_xgb = best_xgb.predict(X_test)
 
     set_model_details("XGBoost", mean_squared_error(y_test, y_pred_xgb), r2_score(y_test, y_pred_xgb))
-    calculate_cross_val_score("XGBoost", xgb_reg, False, X_train, y_train)
+    calculate_cross_val_score("XGBoost", best_xgb, False, X_train, y_train)
     print_model_info("XGBoost:", "XGBoost")
 
-    return xgb_reg
+    return best_xgb
 
 def create_nn_model(X_train):    
     nn_model = Sequential([

@@ -35,17 +35,14 @@ def predict_goals_xgBoost(X_predict, xgb_reg):
 def predict_goals_neuralNetwork(X_predict, nn_model):
     set_and_print_model_prediction("Neural", "NeuralNetwork", nn_model.predict(X_predict, verbose=0).flatten()[0])
 
-def prediction_summary(models_details):
-    print("-------------------------")
-    print("SUMMARY")
-
+def prediction_summary(models_details):    
     predicted_goals = [
         models_details[model]["Prediction"]
         for model in ["Linear", "Polynomial", "DecisionTree", "RandomForest", "GradientBoosting", "XGBoost", "NeuralNetwork"]
         if model in models_details
     ]
 
-    print(colored(f"Średnia przewidywana liczba goli: {calculate_mean_prediction_goals(predicted_goals):.2f} \n", "green"))
+    print(colored(f"\nŚrednia przewidywana liczba goli: {calculate_mean_prediction_goals(predicted_goals):.2f} \n", "green"))
 
 def calculate_mean_prediction_goals(predicted_goals):
     valid_predicted = [value for value in predicted_goals if 0.01 < value <= 6.00]
