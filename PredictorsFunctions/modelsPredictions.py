@@ -14,7 +14,7 @@ def prepare_X_predict(predict_df):
 def predict_goals_naive(naive_mse):
     set_and_print_model_prediction("Naive", "", naive_mse)    
 
-def predict_goals_linear(X_predict, lin_reg):
+def predict_goals_linear(X_predict, lin_reg):    
     set_and_print_model_prediction("Regresja liniowa", "Linear", lin_reg.predict(X_predict)[0])
 
 def predict_goals_polynomial(X_predict, poly, poly_reg):
@@ -39,9 +39,11 @@ def prediction_summary(models_details):
     print("-------------------------")
     print("SUMMARY")
 
-    predicted_goals = [models_details["Linear"]["Prediction"], models_details["Polynomial"]["Prediction"], models_details["DecisionTree"]["Prediction"], 
-                    models_details["RandomForest"]["Prediction"], models_details["GradientBoosting"]["Prediction"], 
-                    models_details["XGBoost"]["Prediction"], models_details["NeuralNetwork"]["Prediction"]]
+    predicted_goals = [
+        models_details[model]["Prediction"]
+        for model in ["Linear", "Polynomial", "DecisionTree", "RandomForest", "GradientBoosting", "XGBoost", "NeuralNetwork"]
+        if model in models_details
+    ]
 
     print(colored(f"Średnia przewidywana liczba goli: {calculate_mean_prediction_goals(predicted_goals):.2f} \n", "green"))
 
@@ -65,6 +67,6 @@ def summary_table(model_details):
             model_details[model_name]["Prediction"],
         ])
 
-    headers = ["Model", "MSE (Lower Better)", "R2 Score (Higher Better)", "Cross Validation Score (Lower Better)", "Predicted goals"]
+    headers = ["Model", "MSE (Lower Better)", "R2 Score (Higher Better - max value: 1)", "Cross Validation Score (Lower Better)", "Predicted goals"]
 
     print(tabulate(table_data, headers=headers, tablefmt="grid"))

@@ -30,11 +30,10 @@ def linear_model(X_train, y_train, X_test, y_test):
     lin_reg.fit(X_train, y_train)
 
     y_pred = lin_reg.predict(X_test)
-    y_pred = np.maximum(0, y_pred)
 
     set_model_details("Linear", mean_squared_error(y_test, y_pred), r2_score(y_test, y_pred))
     calculate_cross_val_score("Linear", lin_reg, True, X_train, y_train)
-    print_model_info("\nRegresja Liniowa:", "Linear")
+    print_model_info("Regresja Liniowa:", "Linear")
 
     return lin_reg
 
