@@ -1,6 +1,4 @@
 from PredictorsFunctions.modelsUtilities import set_and_print_model_prediction
-from termcolor import colored
-from tabulate import tabulate
 
 def prepare_X_predict(predict_df):
     X_predict = predict_df[['home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg',
@@ -34,65 +32,3 @@ def predict_goals_xgBoost(X_predict, xgb_reg):
 
 def predict_goals_neuralNetwork(X_predict, nn_model):
     set_and_print_model_prediction("Neural", "NeuralNetwork", nn_model.predict(X_predict, verbose=0).flatten()[0])
-
-def prediction_summary(models_details):    
-    predicted_goals = [
-        models_details[model]["Prediction"]
-        for model in ["Linear", "Polynomial", "DecisionTree", "RandomForest", "GradientBoosting", "XGBoost", "NeuralNetwork"]
-        if model in models_details
-    ]
-
-    print(colored(f"\nŚrednia przewidywana liczba goli: {calculate_mean_prediction_goals(predicted_goals):.2f} \n", "green"))
-
-def calculate_mean_prediction_goals(predicted_goals):
-    valid_predicted = [value for value in predicted_goals if 0.01 < value <= 6.00]
-    if valid_predicted:
-        summary_prediction = sum(valid_predicted) / len(valid_predicted)
-    else:
-        summary_prediction = 0.0
-
-    return summary_prediction
-
-def summary_table(model_details):
-    table_data = []
-    for model_name, details in model_details.items():
-        table_data.append([
-            model_name,
-            model_details[model_name]["MSE"],
-            model_details[model_name]["R2"],
-            model_details[model_name]["CrossValScore"],
-            model_details[model_name]["Prediction"],
-        ])
-
-    table_data.sort(key=lambda x: x[1])
-
-    headers = ["Model", "MSE (Lower Better)", "R2 Score (Higher Better - max value: 1)", "Cross Validation Score (Lower Better)", "Predicted goals"]
-    headers = [colored(header, 'cyan') for header in headers]
-
-    mse_values = [x[1] for x in table_data]
-    r2_values = [x[2] for x in table_data]
-    cvs_values = [x[3] for x in table_data]
-
-    def colorize_row(row):
-        model_name = row[0]
-        mse = row[1]
-        r2 = row[2]
-        cvs = row[3]
-        
-        if model_name == "Naive":
-            row = [colored(value, 'blue') for value in row]
-        
-        if mse == min(mse_values):
-            row[1] = colored(row[1], 'green')
-        
-        if r2 == max(r2_values):
-            row[2] = colored(row[2], 'green')
-        
-        if cvs == min(cvs_values):
-            row[3] = colored(row[3], 'green')
-
-        return row
-    
-    table_data = [colorize_row(row) for row in table_data]
-
-    print(tabulate(table_data, headers=headers, tablefmt="grid"))

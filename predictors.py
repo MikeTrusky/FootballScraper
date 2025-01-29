@@ -4,6 +4,7 @@ from PredictorsFunctions.dataInitializer import prepare_sets
 import PredictorsFunctions.models as models
 import PredictorsFunctions.modelsPredictions as predictors
 from PredictorsFunctions.modelsUtilities import models_details
+import PredictorsFunctions.predictionSummary as summary
 
 from sklearn.preprocessing import StandardScaler
 
@@ -12,7 +13,7 @@ def main():
     X_train, X_test, y_train, y_test = prepare_sets(train_df)
 
     scaler = StandardScaler()
-
+    
     naive_mse       = models.naive_model(X_train, y_train, y_test)
     lin_reg         = models.linear_model(scaler.fit_transform(X_train), y_train, scaler.transform(X_test), y_test)
     poly, poly_reg  = models.polynomial_model(scaler.fit_transform(X_train), y_train, scaler.transform(X_test), y_test)
@@ -32,7 +33,7 @@ def main():
     predictors.predict_goals_xgBoost(X_predict, xgb_reg)
     predictors.predict_goals_neuralNetwork(X_predict, nn_model)
 
-    predictors.summary_table(models_details)
-    predictors.prediction_summary(models_details)
+    summary.summary_table(models_details)
+    summary.prediction_summary(models_details)
 
 main()

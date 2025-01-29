@@ -2,6 +2,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
 from termcolor import colored
+from datetime import datetime
 
 models_details = {}
 
@@ -28,8 +29,11 @@ def set_model_details(modelName, mseValue, r2Value):
 def update_model_details_CVS(modelName, crossValScoreValue):
     models_details[modelName]["CrossValScore"] = crossValScoreValue
 
+def print_model_start_info(header):
+    print(colored(datetime.now().strftime('%H:%M:%S.%f'), 'red') + " " + colored(header + " started...", 'green'))
+
 def print_model_info(header, modelName):
-    print(colored(header + " done!", 'green'))
+    print(colored(datetime.now().strftime('%H:%M:%S.%f'), 'red') + " " + colored(header + " done!", 'green'))
     # print(f"Mean Squared Error: {models_details[modelName]['MSE']:.2f}")
     # print(f"Cross Validation Score: {models_details[modelName]['CrossValScore']:.2f}")
     # print(f"R2 Score: {models_details[modelName]['R2']:.2f} \n")

@@ -19,9 +19,9 @@ from sklearn.model_selection import KFold
 
 from sklearn.metrics import mean_squared_error, r2_score
 
-from PredictorsFunctions.modelsUtilities import set_model_details, calculate_cross_val_score, print_model_info, update_model_details_CVS
+from PredictorsFunctions.modelsUtilities import set_model_details, calculate_cross_val_score, print_model_info, update_model_details_CVS, print_model_start_info
 
-def naive_model(X_train, y_train, y_test):
+def naive_model(X_train, y_train, y_test):    
     naive_pred = np.mean(y_train)
     naive_mse = np.mean((y_test - naive_pred) ** 2)
 
@@ -31,6 +31,7 @@ def naive_model(X_train, y_train, y_test):
     return naive_mse
 
 def linear_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("Regresja Liniowa:")
     lin_reg = LinearRegression()
     lin_reg.fit(X_train, y_train)
 
@@ -38,11 +39,12 @@ def linear_model(X_train, y_train, X_test, y_test):
 
     set_model_details("Linear", mean_squared_error(y_test, y_pred), r2_score(y_test, y_pred))
     calculate_cross_val_score("Linear", lin_reg, False, X_train, y_train)
-    print_model_info("\nRegresja Liniowa:", "Linear")
+    print_model_info("Regresja Liniowa:", "Linear")
 
     return lin_reg
 
 def polynomial_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("Regresja Wielomianowa (stopień 2):")
     poly = PolynomialFeatures(degree=2)
     X_train_poly = poly.fit_transform(X_train)
     X_test_poly = poly.transform(X_test)
@@ -58,14 +60,14 @@ def polynomial_model(X_train, y_train, X_test, y_test):
     return poly, ridge_reg    
     
 def decisionTree_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("Drzewo decyzyjne:")
     param_grid = {
         'max_depth': [2, 3, 5, 7, 10, 15, None],
         'min_samples_split': [2, 5, 10, 20],
         'min_samples_leaf': [1, 2, 4, 10]
     }
-
-    tree_reg = DecisionTreeRegressor(random_state=42)
-    grid_search = GridSearchCV(tree_reg, param_grid, cv=5, scoring='neg_mean_squared_error')
+    
+    grid_search = GridSearchCV(DecisionTreeRegressor(random_state=42), param_grid, cv=5, scoring='neg_mean_squared_error')
     grid_search.fit(X_train, y_train)
 
     best_tree = grid_search.best_estimator_
@@ -79,6 +81,7 @@ def decisionTree_model(X_train, y_train, X_test, y_test):
     return best_tree
 
 def randomForest_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("Random Forest:")
     param_grid = {
         'n_estimators': [100, 200, 300],
         'max_depth': [None, 5, 10, 15],
@@ -100,18 +103,19 @@ def randomForest_model(X_train, y_train, X_test, y_test):
     return best_rf
 
 def gradientBoosting_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("Gradient Boosting:")
     param_grid = {
         'n_estimators': [100, 200, 300],
-        'learning_rate': [0.01, 0.05, 0.1, 0.2],
+        'learning_rate': [0.01, 0.1, 0.2],
         'max_depth': [3, 5, 7],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4]
     }   
 
-    grid_search = GridSearchCV(GradientBoostingRegressor(random_state=42), param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search = GridSearchCV(GradientBoostingRegressor(random_state=42), param_grid, cv=5, scoring='neg_mean_squared_error')
     grid_search.fit(X_train, y_train)
 
-    best_gb = grid_search.best_estimator_
+    best_gb = grid_search.best_estimator_    
 
     y_pred_gb = np.maximum(0, best_gb.predict(X_test))
 
@@ -122,6 +126,7 @@ def gradientBoosting_model(X_train, y_train, X_test, y_test):
     return best_gb
 
 def xgbRegressor_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("XGBoost:")
     param_grid = {
         'n_estimators': [100, 200, 300],
         'max_depth': [3, 5, 7],
@@ -131,7 +136,7 @@ def xgbRegressor_model(X_train, y_train, X_test, y_test):
         'gamma': [0, 1, 5]
     }
 
-    grid_search = GridSearchCV(XGBRegressor(random_state=42), param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search = GridSearchCV(XGBRegressor(random_state=42, n_jobs=2), param_grid, cv=5, scoring='neg_mean_squared_error')
     grid_search.fit(X_train, y_train)
 
     best_xgb = grid_search.best_estimator_    
@@ -157,6 +162,7 @@ def create_nn_model(X_train):
     return nn_model
 
 def neuralNetwork_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("Neural network:")
     set_model_details("NeuralNetwork", 0, 0)    
     crossValScore = custom_cross_val_score_nn(X_train.values, y_train.values, create_nn_model)    
 
