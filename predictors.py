@@ -1,5 +1,4 @@
-from PredictorsFunctions.dataInitializer import prepare_dataFrames
-from PredictorsFunctions.dataInitializer import prepare_sets
+import PredictorsFunctions.dataInitializer as initializer
 
 import PredictorsFunctions.models as models
 import PredictorsFunctions.modelsPredictions as predictors
@@ -9,8 +8,12 @@ import PredictorsFunctions.predictionSummary as summary
 from sklearn.preprocessing import StandardScaler
 
 def main():
-    train_df, predict_df = prepare_dataFrames()
-    X_train, X_test, y_train, y_test = prepare_sets(train_df)
+    train_df, predict_df = initializer.prepare_dataFrames()    
+    train_df, predict_df = initializer.remove_redundant_features(train_df, predict_df)
+    available_features = initializer.get_available_features(train_df)
+    X_train, X_test, y_train, y_test, X_predict = initializer.prepare_sets(train_df, predict_df, available_features)
+    assert set(train_df.columns) - {'total_goals'} == set(predict_df.columns) - {'total_goals'}, "Kolumny nie są zgodne!"
+    assert set(train_df.columns) - {'total_goals'} == set(X_predict.columns) - {'total_goals'}, "Kolumny nie są zgodne!"
 
     scaler = StandardScaler()
     
@@ -23,7 +26,6 @@ def main():
     xgb_reg         = models.xgbRegressor_model(X_train, y_train, X_test, y_test)
     nn_model        = models.neuralNetwork_model(X_train, y_train, X_test, y_test)
 
-    X_predict = predictors.prepare_X_predict(predict_df)
     predictors.predict_goals_naive(naive_mse)
     predictors.predict_goals_linear(scaler.transform(X_predict), lin_reg)
     predictors.predict_goals_polynomial(scaler.transform(X_predict), poly, poly_reg)

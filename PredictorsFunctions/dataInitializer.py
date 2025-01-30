@@ -56,27 +56,45 @@ def initialize_data():
 
 def prepare_dataFrames():
     data = initialize_data()
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(data)    
 
-    train_df = df.dropna()
-    predict_df = df[df['total_goals'].isna()]
+    train_df = df.dropna()    
+    predict_df = df[df['total_goals'].isna()]    
 
     return train_df, predict_df
 
-def prepare_sets(train_df):
-    X = train_df[
-        [
-            'home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg', 
-            'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg',
-            'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg', 'h2h_hTeam_goals_all_avg', 'h2h_hTeam_conceded_all_avg',
-            'h2h_hTeam_home_goals_avg', 'h2h_hTeam_home_conceded_avg', 'h2h_aTeam_goals_all_avg', 'h2h_aTeam_conceded_all_avg',
-            'h2h_aTeam_away_goals_avg', 'h2h_aTeam_away_conceded_avg'
-        ]
+def get_available_features(train_df):
+    available_features = [
+        'home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg', 
+        'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg',
+        'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg', 'h2h_hTeam_goals_all_avg', 'h2h_hTeam_conceded_all_avg',
+        'h2h_hTeam_home_goals_avg', 'h2h_hTeam_home_conceded_avg', 'h2h_aTeam_goals_all_avg', 'h2h_aTeam_conceded_all_avg',
+        'h2h_aTeam_away_goals_avg', 'h2h_aTeam_away_conceded_avg'
     ]
+
+    available_features = [col for col in available_features if col in train_df.columns]
+
+    return available_features
+
+def prepare_sets(train_df, predict_df, available_features):    
+    X = train_df[available_features]    
     y = train_df['total_goals']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_predict = predict_df[available_features]
 
     # for column in X_train.columns:
     # print(f"{column}: mean={np.mean(X_train[column]):.2f}, std={np.std(X_train[column]):.2f}")
 
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, X_predict
+
+def remove_redundant_features(train_df, predict_df, threshold=0.85):
+    corr = train_df.corr()
+    columns_to_drop = set()
+    for i in range(len(corr.columns)):
+        for j in range(i):
+            if abs(corr.iloc[i, j]) > threshold:
+                columns_to_drop.add(corr.columns[i])
+
+    train_df = train_df.drop(columns=columns_to_drop)
+    predict_df = predict_df.drop(columns=columns_to_drop)
+    return train_df, predict_df

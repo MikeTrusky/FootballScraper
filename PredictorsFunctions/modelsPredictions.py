@@ -1,14 +1,5 @@
 from PredictorsFunctions.modelsUtilities import set_and_print_model_prediction
 
-def prepare_X_predict(predict_df):
-    X_predict = predict_df[['home_goals_avg', 'away_goals_avg', 'home_conceded_avg', 'away_conceded_avg',
-                        'hTeam_goals_all_avg', 'aTeam_goals_all_avg', 'hTeam_conceded_all_avg', 'aTeam_conceded_all_avg',
-                        'hTeam_rivals_rating_avg', 'aTeam_rivals_rating_avg',  'h2h_hTeam_goals_all_avg', 'h2h_hTeam_conceded_all_avg',
-                        'h2h_hTeam_home_goals_avg', 'h2h_hTeam_home_conceded_avg', 'h2h_aTeam_goals_all_avg', 'h2h_aTeam_conceded_all_avg',
-                        'h2h_aTeam_away_goals_avg', 'h2h_aTeam_away_conceded_avg']]
-    
-    return X_predict
-
 def predict_goals_naive(naive_mse):
     set_and_print_model_prediction("Naive", "", naive_mse)    
 
