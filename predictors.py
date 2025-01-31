@@ -16,23 +16,26 @@ def main():
     assert set(train_df.columns) - {'total_goals'} == set(X_predict.columns) - {'total_goals'}, "Kolumny nie są zgodne!"
 
     scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    X_predict_scaled = scaler.transform(X_predict)
     
-    naive_mse       = models.naive_model(X_train, y_train, y_test)
-    lin_reg         = models.linear_model(scaler.fit_transform(X_train), y_train, scaler.transform(X_test), y_test)
-    poly, poly_reg  = models.polynomial_model(scaler.fit_transform(X_train), y_train, scaler.transform(X_test), y_test)
-    tree_reg        = models.decisionTree_model(X_train, y_train, X_test, y_test)
-    rf_regressor    = models.randomForest_model(X_train, y_train, X_test, y_test)
-    gb_regressor    = models.gradientBoosting_model(X_train, y_train, X_test, y_test)
-    xgb_reg         = models.xgbRegressor_model(X_train, y_train, X_test, y_test)
-    nn_model        = models.neuralNetwork_model(X_train, y_train, X_test, y_test)
+    naive_mse           = models.naive_model(X_train, y_train, y_test)
+    lin_reg             = models.linear_model(X_train_scaled, y_train, X_test_scaled, y_test)    
+    poly_reg_pipeline   = models.polynomial_model(X_train_scaled, y_train, X_test_scaled, y_test)
+    tree_reg            = models.decisionTree_model(X_train, y_train, X_test, y_test)
+    rf_regressor        = models.randomForest_model(X_train, y_train, X_test, y_test)
+    gb_regressor        = models.gradientBoosting_model(X_train, y_train, X_test, y_test)
+    # xgb_reg             = models.xgbRegressor_model(X_train, y_train, X_test, y_test) # the longest time to learn
+    nn_model            = models.neuralNetwork_model(X_train, y_train, X_test, y_test)
 
     predictors.predict_goals_naive(naive_mse)
-    predictors.predict_goals_linear(scaler.transform(X_predict), lin_reg)
-    predictors.predict_goals_polynomial(scaler.transform(X_predict), poly, poly_reg)
+    predictors.predict_goals_linear(X_predict_scaled, lin_reg)
+    predictors.predict_goals_polynomial(X_predict_scaled, poly_reg_pipeline)
     predictors.predict_goals_decisionTree(X_predict, tree_reg)
     predictors.predict_goals_randomForest(X_predict, rf_regressor)
     predictors.predict_goals_gradientBoosting(X_predict, gb_regressor)
-    predictors.predict_goals_xgBoost(X_predict, xgb_reg)
+    # predictors.predict_goals_xgBoost(X_predict, xgb_reg)
     predictors.predict_goals_neuralNetwork(X_predict, nn_model)
 
     summary.summary_table(models_details)
