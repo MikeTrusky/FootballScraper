@@ -4,6 +4,7 @@ import PredictorsFunctions.models as models
 import PredictorsFunctions.modelsPredictions as predictors
 from PredictorsFunctions.modelsUtilities import models_details
 import PredictorsFunctions.predictionSummary as summary
+import PredictorsFunctions.classificators as classificators
 
 from sklearn.preprocessing import StandardScaler
 
@@ -28,6 +29,7 @@ def main():
     gb_regressor        = models.gradientBoosting_model(X_train, y_train, X_test, y_test)
     # xgb_reg             = models.xgbRegressor_model(X_train, y_train, X_test, y_test) # the longest time to learn
     nn_model            = models.neuralNetwork_model(X_train, y_train, X_test, y_test)
+    poisson_model       = models.poisson_model(X_train, y_train, X_test, y_test)    
 
     predictors.predict_goals_naive(naive_mse)
     predictors.predict_goals_linear(X_predict_scaled, lin_reg)
@@ -37,8 +39,11 @@ def main():
     predictors.predict_goals_gradientBoosting(X_predict, gb_regressor)
     # predictors.predict_goals_xgBoost(X_predict, xgb_reg)
     predictors.predict_goals_neuralNetwork(X_predict, nn_model)
+    predictors.predict_goals_poisson(X_predict, poisson_model)
 
     summary.summary_table(models_details)
     summary.prediction_summary(models_details)
+
+    classificators.xgb_classificator(X_train, y_train, X_test, y_test)
 
 main()

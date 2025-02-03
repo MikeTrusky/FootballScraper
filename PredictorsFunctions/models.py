@@ -5,6 +5,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import PoissonRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from xgboost import XGBRegressor
 from keras.models import Sequential
@@ -162,6 +163,19 @@ def xgbRegressor_model(X_train, y_train, X_test, y_test):
 
     return best_xgb
 
+def poisson_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("Poisson Regressor:")
+
+    poisson_model = PoissonRegressor()
+    poisson_model.fit(X_train, y_train)
+    y_pred_poisson = poisson_model.predict(X_test)
+
+    set_model_details("Poisson", mean_squared_error(y_test, y_pred_poisson), r2_score(y_test, y_pred_poisson))
+    calculate_cross_val_score("Poisson", poisson_model, False, X_train, y_train)
+    print_model_info("Poisson Regressor:", "Poisson")
+
+    return poisson_model
+
 def create_nn_model(X_train, learning_rate=0.001):    
     nn_model = Sequential([
         Dense(32, activation='relu', input_shape=(X_train.shape[1],), kernel_regularizer=l2(0.01)),
@@ -196,7 +210,6 @@ def neuralNetwork_multiple_runs(X_train, y_train, X_test, y_test, runs=10, thres
 
     for lr in learning_rates:
         for i in range(runs):
-            print(f"Run neural netork {i+1}/{runs}...")
             nn_model = create_nn_model(X_train, learning_rate=lr)
             early_stopping = EarlyStopping(patience=10, restore_best_weights=True)
             nn_model.fit(X_train, y_train, validation_data=(X_test, y_test), 
@@ -206,15 +219,12 @@ def neuralNetwork_multiple_runs(X_train, y_train, X_test, y_test, runs=10, thres
             mse = mean_squared_error(y_test, y_pred_nn)
             r2 = r2_score(y_test, y_pred_nn)
 
-            print(f"Run {i+1}: MSE={mse:.4f}, R2={r2:.4f}")
-
             if r2 > best_r2:
                 best_model = nn_model
                 best_r2 = r2
                 best_mse = mse
 
             if r2 >= threshold:
-                print(f"Found model with R2={r2:.4f} >= {threshold:.2f}. Stopping early.")
                 break
 
     print(f"Best Model: MSE={best_mse:.4f}, R2={best_r2:.4f}")

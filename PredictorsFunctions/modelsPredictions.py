@@ -23,3 +23,6 @@ def predict_goals_xgBoost(X_predict, xgb_reg):
 
 def predict_goals_neuralNetwork(X_predict, nn_model):
     set_model_prediction("Neural", "NeuralNetwork", nn_model.predict(X_predict, verbose=0).flatten()[0])
+
+def predict_goals_poisson(X_predict, poison_model):
+    set_model_prediction("Poisson reggresor", "Poisson", poison_model.predict(X_predict)[0])
