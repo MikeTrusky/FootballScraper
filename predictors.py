@@ -8,7 +8,7 @@ import PredictorsFunctions.classificators as classificators
 
 from sklearn.preprocessing import StandardScaler
 
-def main(naive, linear, polynomial, decisionTree, randomForest, gradientBoosting, xgbRegressor, neural, poisson, showSummary, xgbClassificator):
+def main(naive, linear, polynomial, decisionTree, randomForest, gradientBoosting, xgbRegressor, neural, poisson, lightGBM, showSummary, xgbClassificator):
     train_df, predict_df = initializer.prepare_dataFrames()    
     train_df, predict_df = initializer.remove_redundant_features(train_df, predict_df)
     available_features = initializer.get_available_features(train_df)
@@ -57,6 +57,10 @@ def main(naive, linear, polynomial, decisionTree, randomForest, gradientBoosting
         poisson_model       = models.poisson_model(X_train, y_train, X_test, y_test)    
         predictors.predict_goals_poisson(X_predict, poisson_model)
 
+    if lightGBM:
+        light_model         = models.lightgbm_model(X_train, y_train, X_test, y_test)
+        predictors.predict_goals_light(X_predict, light_model)
+
     if showSummary:
         summary.summary_table(models_details)
         summary.prediction_summary(models_details)
@@ -74,6 +78,7 @@ main(
     xgbRegressor=True,
     neural=True,
     poisson=True,
+    lightGBM=True,
     showSummary=True,
     xgbClassificator=True
 )

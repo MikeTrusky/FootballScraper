@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import PoissonRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
 from keras.models import Sequential
 from keras.layers import Dense
 from sklearn.linear_model import Ridge
@@ -230,7 +231,7 @@ def neuralNetwork_multiple_runs(X_train, y_train, X_test, y_test, runs=10, thres
     print(f"Best Model: MSE={best_mse:.4f}, R2={best_r2:.4f}")
     return best_model, best_mse, best_r2
 
-def custom_cross_val_score_nn(X, y, model_fn, cv=5, epochs=50, batch_size=4):
+def custom_cross_val_score_nn(X, y, model_fn, cv=5, epochs=50, batch_size=4):    
     kfold = KFold(n_splits=cv, shuffle=True, random_state=42)
     scores = []
 
@@ -248,3 +249,27 @@ def custom_cross_val_score_nn(X, y, model_fn, cv=5, epochs=50, batch_size=4):
 
     mean_score = np.mean(scores)
     return mean_score
+
+def lightgbm_model(X_train, y_train, X_test, y_test):
+    print_model_start_info("LightGBM:")
+
+    lgb_model = LGBMRegressor(
+        objective='regression',
+        num_leaves=31,
+        learning_rate=0.05,
+        n_estimators=100,
+        random_state=42
+    )
+
+    lgb_model.fit(X_train, y_train)
+
+    y_pred_lgb = lgb_model.predict(X_test)
+
+    set_model_details("LightGBM", mean_squared_error(y_test, y_pred_lgb), r2_score(y_test, y_pred_lgb))
+    calculate_cross_val_score("LightGBM", lgb_model, False, X_train, y_train)
+    print_model_info("LightGBM:", "LightGBM")
+
+    return lgb_model
+
+
+# Next possible models: CatBoost, LSTM, Transformery

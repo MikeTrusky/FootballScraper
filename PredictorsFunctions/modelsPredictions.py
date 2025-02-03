@@ -26,3 +26,6 @@ def predict_goals_neuralNetwork(X_predict, nn_model):
 
 def predict_goals_poisson(X_predict, poison_model):
     set_model_prediction("Poisson reggresor", "Poisson", poison_model.predict(X_predict)[0])
+
+def predict_goals_light(X_predict, light_model):
+    set_model_prediction("LightGBM", "LightGBM", light_model.predict(X_predict)[0])
