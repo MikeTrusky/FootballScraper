@@ -18,6 +18,8 @@ via an API, and then use this data to try to predict the number of goals in the 
 
 API used in this project is [api.football-data](https://api.football-data.org).
 
+During the project, there was a lot of testing of ChatGPT, DeepSeek and DeepAI for coding.
+
 ## Built With
 
 - Python
