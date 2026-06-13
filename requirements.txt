@@ -1,0 +1,22 @@
+# Core data / ML
+pandas
+numpy
+scikit-learn
+
+# Gradient boosting
+xgboost
+lightgbm
+
+# Neural networks (Keras 3 wymaga backendu - domyslnie TensorFlow)
+keras
+tensorflow
+
+# Wizualizacja
+matplotlib
+
+# HTTP / API
+requests
+
+# CLI helpers
+termcolor
+tabulate

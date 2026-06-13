@@ -1,3 +1,9 @@
+import os
+import sys
+
+if len(sys.argv) > 1:
+    os.environ['FOOTBALL_STATS_FILE'] = sys.argv[1]
+
 import PredictorsFunctions.dataInitializer as initializer
 
 import PredictorsFunctions.models as models

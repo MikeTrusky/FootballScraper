@@ -9,11 +9,12 @@ DATE_FROM = "2024-08-01"
 DATE_TO = "2025-02-01"
 
 MATCH_ID = int(sys.argv[1])
+STATS_FILE_OVERRIDE = sys.argv[2] if len(sys.argv) > 2 else None
 # NUM_MATCHES = int(sys.argv[2])
 # COMPETITION_ID = int(sys.argv[3])
 
 # MATCH_ID = 497623
-NUM_MATCHES = 5
+NUM_MATCHES = 10
 COMPETITION_ID = 2021
 SEASON = 2024
 NUM_H2H_MATCHES = 6
@@ -231,4 +232,4 @@ teamsRaiting = set_teamRating_for_matchday(match_info["matchday"] - 1)
 update_raiting_by_previous_standings(match_info["matchday"])
 results = set_results(match_info["homeTeam"], match_info["awayTeam"], match_info["matchday"])
 
-save_to_file(results)
+save_to_file(results, STATS_FILE_OVERRIDE)
